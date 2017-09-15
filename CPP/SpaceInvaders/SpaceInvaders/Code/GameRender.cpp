@@ -78,10 +78,10 @@ void RenderGame(Player* player)
 	TdSpriteBatch *sprite_batch = game_state->sprite_batch;
 	GameInstance *instance = game_state->instance;
 
+	// Draw Invader Fleet
+	TdRect rect = {0, 0, GameConsts::invader_size.x, GameConsts::invader_size.y};
 	instance->invader_fleet_extent.x = FLT_MAX;
 	instance->invader_fleet_extent.y = -FLT_MAX;
-	TdRect rect = {0, 0, GameConsts::invader_size.x, GameConsts::invader_size.y};
-
 	instance->invader_alive_count = 0;
 	int32 invader_index = 0;
 	Invader *invader = instance->invader_fleet;
@@ -106,12 +106,14 @@ void RenderGame(Player* player)
 		++invader_index;
 	}
 
+	// Draw Defender (player) ship
 	rect.x = instance->ship->pos.x;
 	rect.y = instance->ship->pos.y;
 	rect.w = GameConsts::defender_size.x;
 	rect.h = GameConsts::defender_size.y;
 	tdVkDrawBox(sprite_batch, rect, Color(1));
 
+	// Draw all bullets
 	rect.w = GameConsts::bullet_size.x;
 	rect.h = GameConsts::bullet_size.y;
 	Bullet *bullet = instance->bullets;
@@ -127,6 +129,7 @@ void RenderGame(Player* player)
 		++bullet;
 	}
 
+	// Draw player extra lives
 	rect.x = 40;
 	rect.w = GameConsts::defender_size.x / 2;
 	rect.h = GameConsts::defender_size.y / 2;
@@ -137,6 +140,7 @@ void RenderGame(Player* player)
 		rect.x += rect.w + 10;
 	}
 
+	// Draw HUD
 	tdVkDrawTextDF(sprite_batch, "Score: 0", 0, 15, 10, Color(1), 1);
 	tdVkDrawTextDF(sprite_batch, "Wave: 1", 0, 750, 10, Color(1), 1);
 	tdVkDrawTextDF(sprite_batch, "Highscore: 0", 0, player->viewport.width - 300, 10, Color(1), 1);
@@ -199,27 +203,22 @@ VkResult RenderFrame(bool diagnostics_only = false)
 	render_pass_begin_info.framebuffer = vulkan.frames[current_frame].frame_buffer;
 	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-	//////////////// Draw Player   ///////////////////////////
-
-	Player *player = game_state->player;
-	vkCmdSetViewport(command_buffer, 0, 1, &player->viewport);
-	vkCmdSetScissor(command_buffer, 0, 1, &player->scissor_rect);
-
-	//////////////// Draw Player   ///////////////////////////
-
 	my_draw_calls = draw_calls;
 	my_sprite_draws = sprite_draws;
 	my_sprite_batches = sprite_batches;
 	draw_calls = sprite_draws = sprite_batches = 0;
 
-	if (!diagnostics_only || player->mode <= Player::pm_Menu)
+	////////////////  Draw Player  //////////////////////////////////////
+
+	Player *player = game_state->player;
+	vkCmdSetViewport(command_buffer, 0, 1, &player->viewport);
+	vkCmdSetScissor(command_buffer, 0, 1, &player->scissor_rect);
+
+	switch (player->mode)
 	{
-		switch (player->mode)
-		{
-			case Player::pm_Play:
-				RenderGame(player);
-				break;
-		}
+		case Player::pm_Play:
+			RenderGame(player);
+			break;
 	}
 
 	tdVkSpriteBatchPresent(*game_state->sprite_batch, command_buffer);

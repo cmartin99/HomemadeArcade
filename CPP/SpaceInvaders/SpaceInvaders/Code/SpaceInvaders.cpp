@@ -15,7 +15,6 @@ using namespace eng;
 namespace SpaceInvaders {
 
 #include "Common.cpp"
-#include "Player.cpp"
 #include "GameInstance.cpp"
 #include "GameInput.cpp"
 #include "GameUpdate.cpp"

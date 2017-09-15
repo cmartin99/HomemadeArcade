@@ -70,7 +70,6 @@ void HandleInput()
 	auto debug_data = &game_state->debug_data;
 	auto player = game_state->player;
 	auto instance = game_state->instance;
-
 	auto& input = game_state->input;
 	input.seconds = game_state->seconds;
 
@@ -149,19 +148,12 @@ void HandleRawInput(uint16 vkey, bool key_released)
 				break;
 		}
 	}
-	else
-	{
-		switch (vkey)
-		{
-			case 65:
-			case VK_LEFT:
-				instance->ship->pos.x -= GameConsts::defender_speed.x * game_state->seconds;
-				break;
-
-			case 68:
-			case VK_RIGHT:
-				instance->ship->pos.x += GameConsts::defender_speed.x * game_state->seconds;
-				break;
-		}
-	}
+	// else
+	// {
+	// 	switch (vkey)
+	// 	{
+	// 		case VK_RIGHT:
+	// 			break;
+	// 	}
+	// }
 }

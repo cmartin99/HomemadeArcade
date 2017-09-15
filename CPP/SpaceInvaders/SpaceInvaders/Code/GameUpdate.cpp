@@ -5,11 +5,16 @@ void UpdateGameplay(double elapsed)
 	GameInstance* instance = game_state->instance;
 	Player *player = game_state->player;
 
+	// New wave
 	if (instance->invader_alive_count == 0)
 	{
-		NewInvaderWave(instance);
+		NewInvaderFleet(instance);
 	}
 
+	// Move entire invader fleet
+	instance->invader_fleet_pos.x += instance->invader_fleet_speed * elapsed;
+	
+	// Check if invader fleet has hit screen edge
 	if (instance->invader_fleet_speed > 0)
 	{
 		if (instance->invader_fleet_extent.y > player->viewport.width - 10)
@@ -21,8 +26,7 @@ void UpdateGameplay(double elapsed)
 			instance->invader_fleet_speed = -instance->invader_fleet_speed;
 	}
 
-	instance->invader_fleet_pos.x += instance->invader_fleet_speed * elapsed;
-
+	// Update all bullets
 	Vector2 invader_pos;
 	Bullet *bullet = instance->bullets;
 	Bullet *bullet_end = bullet + instance->bullet_count;
@@ -71,15 +75,14 @@ void UpdateGameplay(double elapsed)
 void UpdateFrame()
 {
 	TIMED_BLOCK(UpdateFrame);
-
 	auto game_state = GetGameState();
-	Player *player = game_state->player;
 
-	if (player->mode == Player::pm_Play)
+	if (game_state->player->mode == Player::pm_Play)
 	{
 		const double fps60 = 1.0 / 60.0;
 		double elapsed = game_state->seconds;
 		if (elapsed > fps60) elapsed = fps60;
+
 		UpdateGameplay(elapsed);
 	}
 }
