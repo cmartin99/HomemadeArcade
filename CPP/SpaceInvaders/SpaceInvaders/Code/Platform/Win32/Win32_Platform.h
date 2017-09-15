@@ -23,8 +23,7 @@ void InitPlatform(void *game_memory);
 eng::TdInputState* GetInput();
 bool IsGameInitialized();
 void RunOneFrame(double);
-void HandleRawInput(uint16 vkey, bool key_released);
-void GameInstanceNew(eng::TdVkInstance&);
-void GameInstanceFree();
+void ApplicationNew(eng::TdVkInstance&);
+void ApplicationFree();
 
 }

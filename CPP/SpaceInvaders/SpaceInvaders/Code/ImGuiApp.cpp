@@ -35,7 +35,7 @@ void ImGuiUpdateMainMenu(Player* player)
 
 	if (DoMenuItem(gui, Gui::NewGame, rect, hgap))
 	{
-		GameNew(player);
+		GameInstanceNew(player);
 	}
 	else if (DoMenuItem(gui, Gui::ResumeGame, rect, hgap))
 	{

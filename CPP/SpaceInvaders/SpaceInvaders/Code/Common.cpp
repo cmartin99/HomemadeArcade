@@ -28,7 +28,7 @@ const Vector2 GameConsts::bullet_speed = {0, 1500};
 extern void ExitGame();
 typedef void (*InputEventHandler)();
 void RenderDebug(TdWindow*, TdSpriteBatch*, TdPoint2);
-void GameNew(Player*);
+void GameInstanceNew(Player*);
 const char *GuiText(GuiID);
 void ConvertXInput(TdGamePadState&, const TdGamePadState&, XINPUT_GAMEPAD);
 
