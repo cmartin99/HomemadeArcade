@@ -26,6 +26,9 @@ void NewInvaderWave(GameInstance* instance)
 	instance->invader_fleet_pos.x = 100;
 	instance->invader_fleet_pos.y = 120;
 	instance->invader_fleet_extent = {FLT_MAX, -FLT_MAX};
+
+	for (uint32 i = 0; i < instance->invader_count; ++i)
+		instance->invader_fleet[i].alive = 1;
 }
 
 void GameNew(Player* player)
@@ -38,6 +41,7 @@ void GameNew(Player* player)
 	GameInstance *instance = game_state->instance;
 	instance->ship = tdMalloc<DefenderShip>(game_state->main_arena);
 	instance->invader_count = GameConsts::wave_size.x * GameConsts::wave_size.y;
+	instance->invader_alive_count = 0;
 	instance->invader_fleet = tdMalloc<Invader>(game_state->main_arena, instance->invader_count);
 	instance->ufo = tdMalloc<UFO>(game_state->main_arena);
 	instance->bullet_count = 10;
@@ -50,11 +54,6 @@ void GameNew(Player* player)
 
 	instance->ufo->pos.x = -GameConsts::ufo_size.x - 1;
 	instance->ufo->pos.y = 30;
-
-	for (uint32 i = 0; i < instance->invader_count; ++i)
-		instance->invader_fleet[i].index = i;
-
-	NewInvaderWave(instance);
 }
 
 void GameInstanceNew(TdVkInstance& vulkan)

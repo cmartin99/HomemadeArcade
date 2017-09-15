@@ -81,15 +81,18 @@ void RenderGame(Player* player)
 	instance->invader_fleet_extent.x = FLT_MAX;
 	instance->invader_fleet_extent.y = -FLT_MAX;
 	TdRect rect = {0, 0, GameConsts::invader_size.x, GameConsts::invader_size.y};
+
+	instance->invader_alive_count = 0;
+	int32 invader_index = 0;
 	Invader *invader = instance->invader_fleet;
 	Invader *invader_end = invader + instance->invader_count;
-
 	while (invader < invader_end)
 	{
-		if (invader->index >= 0)
+		if (invader->alive)
 		{
-			uint32 row = invader->index % GameConsts::wave_size.x;
-			uint32 col = invader->index / GameConsts::wave_size.x;
+			++instance->invader_alive_count;
+			uint32 row = invader_index % GameConsts::wave_size.x;
+			uint32 col = invader_index / GameConsts::wave_size.x;
 			rect.x = instance->invader_fleet_pos.x + row * GameConsts::invader_spacing.x;
 			rect.y = instance->invader_fleet_pos.y + col * GameConsts::invader_spacing.y;
 			tdVkDrawBox(sprite_batch, rect, Color(1));
@@ -100,6 +103,7 @@ void RenderGame(Player* player)
 				instance->invader_fleet_extent.y = rect.x + rect.w;
 		}
 		++invader;
+		++invader_index;
 	}
 
 	rect.x = instance->ship->pos.x;

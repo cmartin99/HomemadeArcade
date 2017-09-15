@@ -280,7 +280,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		input->mouse.mb_left.button_ended_down = mb_left_down;
 		input->mouse.mb_middle.button_ended_down = mb_middle_down;
 		input->mouse.mb_right.button_ended_down = mb_right_down;
-		memset(&input->gamepad, 0, sizeof(TdGamePadState));
 		memcpy(input->keyboard.prev_state, input->keyboard.key_state, 256);
 
 		while ((result = PeekMessage(&message, 0, 0, 0, PM_REMOVE)) > 0)

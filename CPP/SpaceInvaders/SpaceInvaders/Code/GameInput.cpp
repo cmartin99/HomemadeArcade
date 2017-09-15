@@ -56,6 +56,11 @@ ALWAYS_INLINE bool IsKeyUpNew(const TdInputState& input, int key)
 	return IsKeyUp(input, key) && ((input.keyboard.prev_state[key] & 0x80) > 0);
 }
 
+ALWAYS_INLINE bool IsButtonDownNew(TdButtonState button)
+{
+	return button.button_ended_down && button.half_transition_count;
+}
+
 void HandleInput()
 {
 	TIMED_BLOCK(HandleInput);
@@ -69,14 +74,22 @@ void HandleInput()
 	auto& input = game_state->input;
 	input.seconds = game_state->seconds;
 
+	memcpy(&game_state->prev_gamepad, &input.gamepad, sizeof(TdGamePadState));
+
 	XINPUT_STATE xi_state;
 	XInputGetState(0, &xi_state);
-	ConvertXInput(input.gamepad, xi_state.Gamepad);
+	memset(&input.gamepad, 0, sizeof(TdGamePadState));
+	ConvertXInput(input.gamepad, game_state->prev_gamepad, xi_state.Gamepad);
 
 	if (player->mode == Player::pm_Play)
 	{
 		instance->ship->pos.x += input.gamepad.thumb_left.x * GameConsts::defender_speed.x * game_state->seconds;
 		instance->ship->pos.x = tdClamp(instance->ship->pos.x, 0.f, player->viewport.width - GameConsts::defender_size.x);
+
+		if (IsButtonDownNew(input.gamepad.a))
+		{
+			PlayerFireBullet();
+		}
 	}
 
 	// if (game_state->player->sim->sim_paused)
@@ -133,10 +146,6 @@ void HandleRawInput(uint16 vkey, bool key_released)
 				++game_state->debug_data.debug_verbosity;
 				if (game_state->debug_data.debug_verbosity > 3)
 					game_state->debug_data.debug_verbosity = 0;
-				break;
-
-			case 65:
-				PlayerFireBullet();
 				break;
 		}
 	}

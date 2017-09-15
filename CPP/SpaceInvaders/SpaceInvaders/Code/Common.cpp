@@ -20,8 +20,8 @@ const TdPoint2 GameConsts::ufo_size = {132, 32};
 const TdPoint2 GameConsts::defender_size = {64, 64};
 const Vector2 GameConsts::defender_speed = {200, 0};
 const TdPoint2 GameConsts::wave_size = {12, 6};
-const TdPoint2 GameConsts::bullet_size = {4, 20};
-const Vector2 GameConsts::bullet_speed = {0, 50};
+const TdPoint2 GameConsts::bullet_size = {4, 24};
+const Vector2 GameConsts::bullet_speed = {0, 1500};
 
 // -----------------------------------------------------------------------------------------------------------------------------
 
@@ -30,7 +30,7 @@ typedef void (*InputEventHandler)();
 void RenderDebug(TdWindow*, TdSpriteBatch*, TdPoint2);
 void GameNew(Player*);
 const char *GuiText(GuiID);
-void ConvertXInput(TdGamePadState &, XINPUT_GAMEPAD);
+void ConvertXInput(TdGamePadState&, const TdGamePadState&, XINPUT_GAMEPAD);
 
 // -----------------------------------------------------------------------------------------------------------------------------
 

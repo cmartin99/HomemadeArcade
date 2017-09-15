@@ -45,7 +45,7 @@ struct Bullet
 
 struct Invader
 {
-	int index;
+	int32 alive;
 };
 
 struct UFO
@@ -62,6 +62,7 @@ struct GameInstance
 {
 	DefenderShip *ship;
 	uint32 invader_count;
+	uint32 invader_alive_count;
 	Invader *invader_fleet;
 	Vector2 invader_fleet_pos;
 	float invader_fleet_speed;
@@ -97,6 +98,7 @@ struct GameState
 	TdSpriteBatch* sprite_batch;
 	TdSpriteBatch* gui_sprite_batch;
 	TdInputState input;
+	TdGamePadState prev_gamepad;
 	bool exit_game;
 };
 
