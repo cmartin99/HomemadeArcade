@@ -16,4 +16,5 @@ I've decided to develop several small arcade games rather than one big game to t
 The first game we will develop in the series is classic Space Invaders. One of the original arcade games, still fun to play. Easy and quick to program.
 
 Keep on programming and gaming.
+
 Craig Martin.
