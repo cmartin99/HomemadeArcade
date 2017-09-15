@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CaptureSettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Options>
+    <AllowVSync>false</AllowVSync>
+    <AllowFullscreen>false</AllowFullscreen>
+    <DebugDeviceMode>false</DebugDeviceMode>
+    <CaptureCallstacks>false</CaptureCallstacks>
+    <CaptureCallstacksOnlyDraws>false</CaptureCallstacksOnlyDraws>
+    <DelayForDebugger>0</DelayForDebugger>
+    <VerifyMapWrites>true</VerifyMapWrites>
+    <HookIntoChildren>false</HookIntoChildren>
+    <RefAllResources>false</RefAllResources>
+    <SaveAllInitials>false</SaveAllInitials>
+    <CaptureAllCmdLists>false</CaptureAllCmdLists>
+    <DebugOutputMute>true</DebugOutputMute>
+  </Options>
+  <Inject>false</Inject>
+  <AutoStart>false</AutoStart>
+  <Executable>D:\Documents\Craig XNA\Prototypes\StarVox2\Build\Bin\Win32_StarVox.exe</Executable>
+  <WorkingDir />
+  <CmdLine />
+</CaptureSettings>

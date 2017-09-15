@@ -1,0 +1,57 @@
+# AngelCode Bitmap Font Generator configuration file
+fileVersion=1
+
+# font settings
+fontName=Consolas
+fontFile=
+charSet=0
+fontSize=36
+aa=1
+scaleH=100
+useSmoothing=1
+isBold=0
+isItalic=0
+useUnicode=1
+disableBoxChars=1
+outputInvalidCharGlyph=0
+dontIncludeKerningPairs=0
+useHinting=0
+renderFromOutline=0
+useClearType=1
+
+# character alignment
+paddingDown=0
+paddingUp=0
+paddingRight=0
+paddingLeft=0
+spacingHoriz=1
+spacingVert=1
+useFixedHeight=0
+forceZero=0
+
+# output file
+outWidth=512
+outHeight=512
+outBitDepth=32
+fontDescFormat=0
+fourChnlPacked=0
+textureFormat=png
+textureCompression=0
+alphaChnl=0
+redChnl=4
+greenChnl=4
+blueChnl=4
+invA=0
+invR=0
+invG=0
+invB=0
+
+# outline
+outlineThickness=0
+
+# selected chars
+chars=32-126,160-255,8192-8207,8210-8226,8230,8239-8240,8242-8244,8249-8250,8252-8254,8260,8286,8453,8467
+chars=8470-8471,8482,8486,8494,8525-8526,8706,8710,8719,8721-8722,8725,8729-8730,8734-8735,8745,8747,8776
+chars=8800-8801,8804-8805,9786-9788,9792,9794,9824,9827,9829-9830,9834-9835
+
+# imported icon images

@@ -1,0 +1,24 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+    "files.associations": {
+        "iosfwd": "cpp",
+        "xlocbuf": "cpp",
+        "xiosbase": "cpp",
+        "xlocale": "cpp",
+        "chrono": "cpp",
+        "xutility": "cpp",
+        "xstring": "cpp",
+        "system_error": "cpp",
+        "ratio": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "xmemory0": "cpp",
+        "xstddef": "cpp",
+        "xtr1common": "cpp",
+        "locale": "cpp",
+        "xlocmes": "cpp",
+        "xlocmon": "cpp",
+        "xlocnum": "cpp",
+        "xloctime": "cpp"
+    }
+}

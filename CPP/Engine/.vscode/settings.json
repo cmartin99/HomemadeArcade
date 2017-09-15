@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "algorithm": "cpp",
+        "xutility": "cpp",
+        "system_error": "cpp",
+        "xlocale": "cpp",
+        "array": "cpp",
+        "xstring": "cpp",
+        "xiosbase": "cpp"
+    }
+}
