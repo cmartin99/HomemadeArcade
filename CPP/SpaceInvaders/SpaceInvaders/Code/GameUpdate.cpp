@@ -8,22 +8,42 @@ void UpdateGameplay(double elapsed)
 	// New wave
 	if (instance->invader_alive_count == 0)
 	{
-		NewInvaderFleet(instance);
-	}
-
-	// Move entire invader fleet
-	instance->invader_fleet_pos.x += instance->invader_fleet_speed * elapsed;
-	
-	// Check if invader fleet has hit screen edge
-	if (instance->invader_fleet_speed > 0)
-	{
-		if (instance->invader_fleet_extent.y > player->viewport.width - 10)
-			instance->invader_fleet_speed = -instance->invader_fleet_speed;
+		if (game_state->total_seconds >= instance->new_fleet_timer)
+			NewInvaderFleet(instance);
 	}
 	else
 	{
-		if (instance->invader_fleet_extent.x < 10)
-			instance->invader_fleet_speed = -instance->invader_fleet_speed;
+		// Move entire invader fleet
+		if (instance->invader_fleet_state == GameInstance::in_MovingAcross)
+		{
+			instance->invader_fleet_pos.x += instance->invader_fleet_speed * elapsed;
+
+			// Check if invader fleet has hit screen edge
+			if (instance->invader_fleet_speed > 0)
+			{
+				if (instance->invader_fleet_extent.y > player->viewport.width - 10)
+				{
+					instance->invader_fleet_speed = -instance->invader_fleet_speed;
+					instance->invader_fleet_state = GameInstance::in_CreepingDown;
+					instance->invader_fleet_y_target = instance->invader_fleet_pos.y + GameConsts::invader_fleet_creep_distance;
+				}
+			}
+			else
+			{
+				if (instance->invader_fleet_extent.x < 10)
+				{
+					instance->invader_fleet_speed = -instance->invader_fleet_speed;
+					instance->invader_fleet_state = GameInstance::in_CreepingDown;
+					instance->invader_fleet_y_target = instance->invader_fleet_pos.y + GameConsts::invader_fleet_creep_distance;
+				}
+			}
+		}
+		else if (instance->invader_fleet_state == GameInstance::in_CreepingDown)
+		{
+			instance->invader_fleet_pos.y += GameConsts::invader_fleet_creep_speed * elapsed;
+			if (instance->invader_fleet_pos.y > instance->invader_fleet_y_target)
+				instance->invader_fleet_state = GameInstance::in_MovingAcross;
+		}
 	}
 
 	// Update all bullets
@@ -39,7 +59,7 @@ void UpdateGameplay(double elapsed)
 			{
 				bullet->alive = 0;
 			}
-			else
+			else if (instance->invader_alive_count)
 			{
 				int32 invader_index = 0;
 				Invader *invader = instance->invader_fleet;
@@ -48,18 +68,24 @@ void UpdateGameplay(double elapsed)
 				{
 					if (invader->alive)
 					{
-						uint32 row = invader_index % GameConsts::wave_size.x;
-						uint32 col = invader_index / GameConsts::wave_size.x;
+						uint32 row = invader_index % GameConsts::fleet_size.x;
+						uint32 col = invader_index / GameConsts::fleet_size.x;
 						invader_pos.x = instance->invader_fleet_pos.x + row * GameConsts::invader_spacing.x;
 						invader_pos.y = instance->invader_fleet_pos.y + col * GameConsts::invader_spacing.y;
 
-						if (bullet->pos.y < invader_pos.y + GameConsts::invader_size.y &&
-							bullet->pos.y + GameConsts::bullet_size.y > invader_pos.y &&
-							bullet->pos.x + GameConsts::bullet_size.x > invader_pos.x &&
-							bullet->pos.x < invader_pos.x + GameConsts::invader_size.x)
+						if (bullet->pos.y < invader_pos.y + GameConsts::invader_size.y - 2 &&
+							bullet->pos.y + GameConsts::bullet_size.y > invader_pos.y + 2 &&
+							bullet->pos.x + GameConsts::bullet_size.x > invader_pos.x + 1 &&
+							bullet->pos.x < invader_pos.x + GameConsts::invader_size.x - 1)
 						{
 							invader->alive = 0;
 							bullet->alive = 0;
+
+							if (instance->invader_alive_count == 1)
+								instance->new_fleet_timer = game_state->total_seconds + 3;
+
+							player->score += 50;
+							if (player->score > instance->high_score) instance->high_score = player->score;
 							break;
 						}
 					}
@@ -83,6 +109,6 @@ void UpdateFrame()
 		double elapsed = game_state->seconds;
 		if (elapsed > fps60) elapsed = fps60;
 
-		UpdateGameplay(elapsed);
+		UpdateGameplay(elapsed * game_state->elapsed_scale);
 	}
 }

@@ -19,6 +19,30 @@ static HWND hwnd_main;
 static uint8 rawinput_buffer[48];
 static uint64 platform_frame_count;
 
+void HandleRawInput(HWND hwnd, LPARAM lParam)
+{
+	if (!IsGameInitialized()) return;
+
+	UINT dwSize;
+
+	GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+	assert(dwSize <= 48);
+
+	if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, rawinput_buffer, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize)
+	{
+		OutputDebugString(TEXT("GetRawInputData does not return correct header size !\n"));
+		return;
+	}
+
+	RAWINPUTHEADER* header = (RAWINPUTHEADER*)rawinput_buffer;
+	RAWINPUT* input = (RAWINPUT*)rawinput_buffer;
+
+	if (header->dwType == RIM_TYPEKEYBOARD)
+	{
+		HandleRawInput(input->data.keyboard.VKey, (input->data.keyboard.Flags & RI_KEY_BREAK) > 0);
+	}
+}
+
 LRESULT CALLBACK Win32_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	LRESULT result = 0;
@@ -43,6 +67,10 @@ LRESULT CALLBACK Win32_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 	switch (uMsg)
 	{
+	case WM_INPUT:
+		HandleRawInput(hwnd, lParam);
+		break;
+
 	case WM_KEYDOWN:
 		input->keyboard.key_state[wParam] = 0x80;
 		global_running = (wParam == VK_ESCAPE);

@@ -1,4 +1,28 @@
 
+ALWAYS_INLINE bool IsKeyDown(const TdInputState& input, int key)
+{
+	assert(key >= 0 && key < 256);
+	return (GetKeyState(key) & 0x80) > 0;
+	//return (input.keyboard.key_state[key] & 0x80) > 0;
+}
+
+ALWAYS_INLINE bool IsKeyDownNew(const TdInputState& input, int key)
+{
+	assert(key >= 0 && key < 256);
+	return IsKeyDown(input, key) && ((input.keyboard.prev_state[key] & 0x80) == 0);
+}
+
+ALWAYS_INLINE bool IsKeyUp(const TdInputState& input, int key)
+{
+	return !IsKeyDown(input, key);
+}
+
+ALWAYS_INLINE bool IsKeyUpNew(const TdInputState& input, int key)
+{
+	assert(key >= 0 && key < 256);
+	return IsKeyUp(input, key) && ((input.keyboard.prev_state[key] & 0x80) > 0);
+}
+
 ALWAYS_INLINE bool IsButtonDownNew(TdButtonState button)
 {
 	return button.button_ended_down && button.half_transition_count;
@@ -32,6 +56,32 @@ void HandleInput()
 		if (IsButtonDownNew(input.gamepad.a))
 		{
 			PlayerFireBullet();
+		}
+	}
+}
+
+void HandleRawInput(uint16 vkey, bool key_released)
+{
+	auto game_state = GetGameState();
+	Player *player = game_state->player;
+
+	if (key_released)
+	{
+		switch (vkey)
+		{
+			case VK_ESCAPE:
+				break;
+			case VK_F2:
+				++game_state->debug_data.debug_verbosity;
+				if (game_state->debug_data.debug_verbosity > 3)
+					game_state->debug_data.debug_verbosity = 0;
+				break;
+			case 49:
+				game_state->elapsed_scale *= 0.5;
+				break;
+			case 50:
+				game_state->elapsed_scale *= 2.0;
+				break;
 		}
 	}
 }

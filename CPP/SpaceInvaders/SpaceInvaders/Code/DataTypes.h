@@ -24,10 +24,12 @@ struct GameConsts
 {
 	static const TdPoint2 invader_size;
 	static const TdPoint2 invader_spacing;
+	static const float invader_fleet_creep_speed;
+	static const float invader_fleet_creep_distance;
 	static const TdPoint2 ufo_size;
 	static const TdPoint2 defender_size;
 	static const Vector2 defender_speed;
-	static const TdPoint2 wave_size;
+	static const TdPoint2 fleet_size;
 	static const TdPoint2 bullet_size;
 	static const Vector2 bullet_speed;
 };
@@ -60,21 +62,29 @@ struct DefenderShip
 
 struct GameInstance
 {
+	enum { in_MovingAcross, in_CreepingDown	} invader_fleet_state;
 	DefenderShip *ship;
 	uint32 invader_count;
 	uint32 invader_alive_count;
 	Invader *invader_fleet;
 	Vector2 invader_fleet_pos;
 	float invader_fleet_speed;
+	float invader_fleet_y_target;
 	UFO *ufo;
 	Vector2 invader_fleet_extent;
 	uint32 bullet_count;
 	Bullet *bullets;
+	TdPcg32Random* stars_rng;
+	uint64 stars_rng_seed1, stars_rng_seed2;
+	uint32 wave;
+	uint32 high_score;
+	double new_fleet_timer;
 };
 
 struct Player
 {
 	enum PlayerMode	{ pm_Menu, pm_Play };
+	uint32 score;
 	PlayerMode mode;
 	uint32 lives;
 	VkViewport viewport;
@@ -99,6 +109,7 @@ struct GameState
 	TdSpriteBatch* gui_sprite_batch;
 	TdInputState input;
 	TdGamePadState prev_gamepad;
+	double elapsed_scale;
 	bool exit_game;
 };
 

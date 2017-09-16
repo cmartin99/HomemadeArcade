@@ -88,6 +88,7 @@ void ApplicationNew(TdVkInstance& vulkan)
 	LARGE_INTEGER currentTime;
 	currentTime.QuadPart = 5;
 	QueryPerformanceCounter(&currentTime);
+	game_state->elapsed_scale = 1;
 
 	game_state->instance = tdMalloc<GameInstance>(game_state->perm_arena);
 	game_state->player = tdMalloc<Player>(game_state->perm_arena);

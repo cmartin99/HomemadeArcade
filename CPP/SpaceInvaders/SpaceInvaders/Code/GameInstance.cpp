@@ -22,9 +22,10 @@ void PlayerFireBullet()
 
 void NewInvaderFleet(GameInstance* instance)
 {
+	++instance->wave;
 	instance->invader_fleet_speed = 100;
 	instance->invader_fleet_pos.x = 100;
-	instance->invader_fleet_pos.y = 120;
+	instance->invader_fleet_pos.y = 100;
 	instance->invader_fleet_extent = {FLT_MAX, -FLT_MAX};
 
 	for (uint32 i = 0; i < instance->invader_count; ++i)
@@ -40,15 +41,20 @@ void GameInstanceNew(Player* player)
 
 	GameInstance *instance = game_state->instance;
 	instance->ship = tdMalloc<DefenderShip>(game_state->main_arena);
-	instance->invader_count = GameConsts::wave_size.x * GameConsts::wave_size.y;
+	instance->invader_count = GameConsts::fleet_size.x * GameConsts::fleet_size.y;
 	instance->invader_alive_count = 0;
 	instance->invader_fleet = tdMalloc<Invader>(game_state->main_arena, instance->invader_count);
 	instance->ufo = tdMalloc<UFO>(game_state->main_arena);
 	instance->bullet_count = 10;
 	instance->bullets = tdMalloc<Bullet>(game_state->main_arena, instance->bullet_count);
+	instance->stars_rng = tdMalloc<TdPcg32Random>(game_state->main_arena);
+	instance->stars_rng_seed1 = tdRandomNext(game_state->rng);
+	instance->stars_rng_seed2 = tdRandomNext(game_state->rng);
+	instance->wave = 0;
 
 	player->mode = Player::pm_Play;
 	player->lives = 2;
+	player->score = 0;
 	instance->ship->pos.x = 100;
 	instance->ship->pos.y = player->viewport.height - GameConsts::defender_size.y * 2;
 
