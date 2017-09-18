@@ -1,4 +1,9 @@
 
+ALWAYS_INLINE uint32 InvaderCount()
+{
+	return GameConsts::fleet_size.x * GameConsts::fleet_size.y;
+}
+
 void PlayerFireBullet()
 {
 	auto game_state = GetGameState();
@@ -23,13 +28,14 @@ void PlayerFireBullet()
 void NewInvaderFleet(GameInstance* instance)
 {
 	++instance->wave;
-	instance->invader_fleet_speed = 100;
 	instance->invader_fleet_pos.x = 100;
-	instance->invader_fleet_pos.y = 100;
-	instance->invader_fleet_extent = {FLT_MAX, -FLT_MAX};
+	instance->invader_fleet_pos.y = 100 + min(100, (int)instance->wave * 7);
+	instance->invader_fleet_extent = {FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-	for (uint32 i = 0; i < instance->invader_count; ++i)
+	for (uint32 i = 0; i < InvaderCount(); ++i)
 		instance->invader_fleet[i].alive = 1;
+
+	instance->invader_fleet_speed = 80 + instance->wave * 2;
 }
 
 void GameInstanceNew(Player* player)
@@ -41,9 +47,7 @@ void GameInstanceNew(Player* player)
 
 	GameInstance *instance = game_state->instance;
 	instance->ship = tdMalloc<DefenderShip>(game_state->main_arena);
-	instance->invader_count = GameConsts::fleet_size.x * GameConsts::fleet_size.y;
-	instance->invader_alive_count = 0;
-	instance->invader_fleet = tdMalloc<Invader>(game_state->main_arena, instance->invader_count);
+	instance->invader_fleet = tdMalloc<Invader>(game_state->main_arena, InvaderCount());
 	instance->ufo = tdMalloc<UFO>(game_state->main_arena);
 	instance->bullet_count = 10;
 	instance->bullets = tdMalloc<Bullet>(game_state->main_arena, instance->bullet_count);
@@ -51,6 +55,8 @@ void GameInstanceNew(Player* player)
 	instance->stars_rng_seed1 = tdRandomNext(game_state->rng);
 	instance->stars_rng_seed2 = tdRandomNext(game_state->rng);
 	instance->wave = 0;
+	instance->invader_alive_count = 0;
+	instance->gameover_timer = 0;
 
 	player->mode = Player::pm_Play;
 	player->lives = 2;

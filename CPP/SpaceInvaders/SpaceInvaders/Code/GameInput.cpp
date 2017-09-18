@@ -48,7 +48,7 @@ void HandleInput()
 	ConvertXInput(input.gamepad, game_state->prev_gamepad, xi_state.Gamepad);
 
 	// Gameplay inputs
-	if (player->mode == Player::pm_Play)
+	if (player->mode == Player::pm_Play && instance->gameover_timer == 0)
 	{
 		instance->ship->pos.x += input.gamepad.thumb_left.x * GameConsts::defender_speed.x * game_state->seconds;
 		instance->ship->pos.x = tdClamp(instance->ship->pos.x, 0.f, player->viewport.width - GameConsts::defender_size.x);
@@ -70,6 +70,7 @@ void HandleRawInput(uint16 vkey, bool key_released)
 		switch (vkey)
 		{
 			case VK_ESCAPE:
+				player->mode = Player::pm_Paused;
 				break;
 			case VK_F2:
 				++game_state->debug_data.debug_verbosity;

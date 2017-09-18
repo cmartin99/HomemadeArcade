@@ -27,8 +27,9 @@ void ImGuiUpdateMainMenu(Player* player)
 
 	int bord = 2;
 	TdRect rect = {0, 0, 0, 40};
-	TdRect main_rect = tdRectCenter(player->viewport, 400, 3 * (rect.h + 1) + bord * 2 - 1);
-	tdVkDrawBox(sprite_batch, main_rect, Color(0), bord, Color(1));
+	int item_count = player->mode == Player::pm_Paused ? 3 : 2;
+	TdRect main_rect = tdRectCenter(player->viewport, 400, item_count * (rect.h + 1) + bord * 2 - 1);
+	tdVkDrawBox(sprite_batch, main_rect, Color(0,0,0,1), bord, Color(1));
 
 	int hgap = 1;
 	rect = {main_rect.x + bord, main_rect.y + bord, main_rect.w - bord * 2, rect.h};
@@ -37,8 +38,9 @@ void ImGuiUpdateMainMenu(Player* player)
 	{
 		GameInstanceNew(player);
 	}
-	else if (DoMenuItem(gui, Gui::ResumeGame, rect, hgap))
+	else if (player->mode == Player::pm_Paused && DoMenuItem(gui, Gui::ResumeGame, rect, hgap))
 	{
+		player->mode = Player::pm_Play;
 	}
 	else if (DoMenuItem(gui, Gui::ExitGame, rect, hgap))
 	{
@@ -56,7 +58,7 @@ void ImGuiUpdate(Player* player)
 	TIMED_BLOCK(ImGuiUpdate);
 	player->gui.new_hot = Gui::None;
 
-	if (player->mode == Player::pm_Menu)
+	if (player->mode == Player::pm_Menu || player->mode == Player::pm_Paused)
 	{
 		ImGuiUpdateMainMenu(player);
 	}

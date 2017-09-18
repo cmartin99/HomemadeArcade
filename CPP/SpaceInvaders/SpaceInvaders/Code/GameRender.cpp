@@ -78,23 +78,26 @@ void RenderGame(Player* player)
 	TdSpriteBatch *sprite_batch = game_state->sprite_batch;
 	GameInstance *instance = game_state->instance;
 
+	float color_dim = player->mode == Player::pm_Play ? 1.0f : 0.25f;
+
 	// Draw stars background
 	tdRandomSeed(instance->stars_rng, instance->stars_rng_seed1, instance->stars_rng_seed2);
 	for (uint32 i = 0; i < 500; ++i)
 	{
 		float x = tdRandomNext(instance->stars_rng, player->viewport.width);
 		float y = tdRandomNext(instance->stars_rng, player->viewport.height);
-		tdVkDrawBox(sprite_batch, x, y, 1, 1, Color(1));
+		tdVkDrawBox(sprite_batch, x, y, 1, 1, Color(1) * color_dim);
 	}
 
 	// Draw Invader Fleet
 	TdRect rect = {0, 0, GameConsts::invader_size.x, GameConsts::invader_size.y};
 	instance->invader_fleet_extent.x = FLT_MAX;
 	instance->invader_fleet_extent.y = -FLT_MAX;
+	instance->invader_fleet_extent.z = -FLT_MAX;
 	instance->invader_alive_count = 0;
 	int32 invader_index = 0;
 	Invader *invader = instance->invader_fleet;
-	Invader *invader_end = invader + instance->invader_count;
+	Invader *invader_end = invader + InvaderCount();
 	while (invader < invader_end)
 	{
 		if (invader->alive)
@@ -104,12 +107,14 @@ void RenderGame(Player* player)
 			uint32 col = invader_index / GameConsts::fleet_size.x;
 			rect.x = instance->invader_fleet_pos.x + row * GameConsts::invader_spacing.x;
 			rect.y = instance->invader_fleet_pos.y + col * GameConsts::invader_spacing.y;
-			tdVkDrawBox(sprite_batch, rect, Color(0,0.5,0,1));
+			tdVkDrawBox(sprite_batch, rect, Color(0,0.5,0,1) * color_dim);
 
 			if (rect.x < instance->invader_fleet_extent.x)
 				instance->invader_fleet_extent.x = rect.x;
 			if (rect.x + rect.w > instance->invader_fleet_extent.y)
 				instance->invader_fleet_extent.y = rect.x + rect.w;
+			if (rect.y + rect.h > instance->invader_fleet_extent.z)
+				instance->invader_fleet_extent.z = rect.y + rect.h;
 		}
 		++invader;
 		++invader_index;
@@ -120,7 +125,7 @@ void RenderGame(Player* player)
 	rect.y = instance->ship->pos.y;
 	rect.w = GameConsts::defender_size.x;
 	rect.h = GameConsts::defender_size.y;
-	tdVkDrawBox(sprite_batch, rect, Color(1));
+	tdVkDrawBox(sprite_batch, rect, Color(1) * color_dim);
 
 	// Draw all bullets
 	rect.w = GameConsts::bullet_size.x;
@@ -133,7 +138,7 @@ void RenderGame(Player* player)
 		{
 			rect.x = bullet->pos.x;
 			rect.y = bullet->pos.y;
-			tdVkDrawBox(sprite_batch, rect, Color(1,1,0,1));
+			tdVkDrawBox(sprite_batch, rect, Color(1,1,0,1) * color_dim);
 		}
 		++bullet;
 	}
@@ -145,17 +150,17 @@ void RenderGame(Player* player)
 	rect.y = player->viewport.height - rect.h - 10;
 	for (uint32 i = 0; i < player->lives; ++i)
 	{
-		tdVkDrawBox(sprite_batch, rect, Color(1));
+		tdVkDrawBox(sprite_batch, rect, Color(1) * color_dim);
 		rect.x += rect.w + 10;
 	}
 
 	// Draw HUD
 	sprintf(temp_text, "Score: %d", player->score);
-	tdVkDrawTextDF(sprite_batch, temp_text, 0, 15, 10, Color(1), 1);
+	tdVkDrawTextDF(sprite_batch, temp_text, 0, 15, 10, Color(1) * color_dim, 1);
 	sprintf(temp_text, "Wave: %d", instance->wave);
-	tdVkDrawTextDF(sprite_batch, temp_text, 0, 750, 10, Color(1), 1);
+	tdVkDrawTextDF(sprite_batch, temp_text, 0, 750, 10, Color(1) * color_dim, 1);
 	sprintf(temp_text, "Highscore: %d", instance->high_score);
-	tdVkDrawTextDF(sprite_batch, temp_text, 0, player->viewport.width - 300, 10, Color(1), 1);
+	tdVkDrawTextDF(sprite_batch, temp_text, 0, player->viewport.width - 300, 10, Color(1) * color_dim, 1);
 }
 
 VkResult RenderFrame(bool diagnostics_only = false)
@@ -229,6 +234,7 @@ VkResult RenderFrame(bool diagnostics_only = false)
 	switch (player->mode)
 	{
 		case Player::pm_Play:
+		case Player::pm_Paused:
 			RenderGame(player);
 			break;
 	}

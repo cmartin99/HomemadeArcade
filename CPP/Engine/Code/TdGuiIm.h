@@ -15,7 +15,7 @@ struct ImGui
 	const char* (*GuiText)(GuiID);
 };
 
-bool DoMenuItem(ImGui*, GuiID item, TdRect&, int hgap = 0, bool enabled = true);
+bool DoMenuItem(ImGui*, GuiID item, TdRect&, int ygap = 0, bool enabled = true);
 bool DoButton(ImGui*, GuiID item, const TdRect&, bool enabled = true);
 
 }

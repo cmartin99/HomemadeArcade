@@ -64,14 +64,13 @@ struct GameInstance
 {
 	enum { in_MovingAcross, in_CreepingDown	} invader_fleet_state;
 	DefenderShip *ship;
-	uint32 invader_count;
 	uint32 invader_alive_count;
 	Invader *invader_fleet;
-	Vector2 invader_fleet_pos;
 	float invader_fleet_speed;
+	Vector2 invader_fleet_pos;
 	float invader_fleet_y_target;
 	UFO *ufo;
-	Vector2 invader_fleet_extent;
+	Vector3 invader_fleet_extent;
 	uint32 bullet_count;
 	Bullet *bullets;
 	TdPcg32Random* stars_rng;
@@ -79,11 +78,12 @@ struct GameInstance
 	uint32 wave;
 	uint32 high_score;
 	double new_fleet_timer;
+	double gameover_timer;
 };
 
 struct Player
 {
-	enum PlayerMode	{ pm_Menu, pm_Play };
+	enum PlayerMode	{ pm_Menu, pm_Paused, pm_Play };
 	uint32 score;
 	PlayerMode mode;
 	uint32 lives;

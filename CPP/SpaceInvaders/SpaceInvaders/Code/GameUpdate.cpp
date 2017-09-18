@@ -40,9 +40,17 @@ void UpdateGameplay(double elapsed)
 		}
 		else if (instance->invader_fleet_state == GameInstance::in_CreepingDown)
 		{
-			instance->invader_fleet_pos.y += GameConsts::invader_fleet_creep_speed * elapsed;
-			if (instance->invader_fleet_pos.y > instance->invader_fleet_y_target)
-				instance->invader_fleet_state = GameInstance::in_MovingAcross;
+			if (instance->invader_fleet_extent.z >= instance->ship->pos.y)
+			{
+				if (instance->gameover_timer == 0)
+					instance->gameover_timer = game_state->total_seconds + 3;
+			}
+			else
+			{
+				instance->invader_fleet_pos.y += GameConsts::invader_fleet_creep_speed * elapsed;
+				 if (instance->invader_fleet_pos.y >= instance->invader_fleet_y_target)
+					instance->invader_fleet_state = GameInstance::in_MovingAcross;
+			}
 		}
 	}
 
@@ -63,7 +71,7 @@ void UpdateGameplay(double elapsed)
 			{
 				int32 invader_index = 0;
 				Invader *invader = instance->invader_fleet;
-				Invader *invader_end = invader + instance->invader_count;
+				Invader *invader_end = invader + InvaderCount();
 				while (invader < invader_end)
 				{
 					if (invader->alive)
@@ -83,6 +91,11 @@ void UpdateGameplay(double elapsed)
 
 							if (instance->invader_alive_count == 1)
 								instance->new_fleet_timer = game_state->total_seconds + 3;
+							else
+							{
+								float inc_fac = (InvaderCount() - instance->invader_alive_count + 1) / (float)InvaderCount() * 20.0f;
+								instance->invader_fleet_speed += sign(instance->invader_fleet_speed) * inc_fac;
+							}
 
 							player->score += 50;
 							if (player->score > instance->high_score) instance->high_score = player->score;
@@ -95,6 +108,11 @@ void UpdateGameplay(double elapsed)
 			}
 		}
 		++bullet;
+	}
+
+	if (instance->gameover_timer > 0 && game_state->total_seconds >= instance->gameover_timer)
+	{
+		player->mode = Player::pm_Menu;
 	}
 }
 
