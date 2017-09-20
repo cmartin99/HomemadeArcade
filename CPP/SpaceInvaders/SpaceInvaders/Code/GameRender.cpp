@@ -143,6 +143,35 @@ void RenderGame(Player* player)
 		++bullet;
 	}
 
+	// Particles
+	float ash;
+	Color color;
+	Particle *particle = instance->particles;
+	Particle *particle_end = particle + GameConsts::max_particles;
+	while (particle < particle_end)
+	{
+		if (particle->age > 0)
+		{
+			rect.x = particle->pos.x;
+			rect.y = particle->pos.y;
+			rect.w = particle->size.x;
+			rect.h = particle->size.y;
+			ash = 1;
+			color = particle->color;
+			if (particle->age < 0.5f)
+			{
+				ash = particle->age * 2;
+				color *= ash;
+				float mag = length(color);
+				color.r = tdLerp(color.r, mag, 1 - ash);
+				color.g = tdLerp(color.g, mag, 1 - ash);
+				color.b = tdLerp(color.b, mag, 1 - ash);
+			}
+			tdVkDrawBox(sprite_batch, rect, color * color_dim);
+		}
+		++particle;
+	}
+
 	// Draw player extra lives
 	rect.x = 40;
 	rect.w = GameConsts::defender_size.x / 2;

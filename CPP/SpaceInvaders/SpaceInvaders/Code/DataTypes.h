@@ -32,11 +32,16 @@ struct GameConsts
 	static const TdPoint2 fleet_size;
 	static const TdPoint2 bullet_size;
 	static const Vector2 bullet_speed;
+	static const uint32 max_particles = 1000;
 };
 
-struct Particles
+struct Particle
 {
+	float age;
 	Vector2 pos;
+	Vector2 vel;
+	Vector2 size;
+	Color color;
 };
 
 struct Bullet
@@ -70,6 +75,7 @@ struct GameInstance
 	Vector2 invader_fleet_pos;
 	float invader_fleet_y_target;
 	UFO *ufo;
+	Particle *particles;
 	Vector3 invader_fleet_extent;
 	uint32 bullet_count;
 	Bullet *bullets;

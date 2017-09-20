@@ -89,6 +89,11 @@ void UpdateGameplay(double elapsed)
 							invader->alive = 0;
 							bullet->alive = 0;
 
+							Vector2 particle_pos = invader_pos;
+							particle_pos.x += GameConsts::invader_size.x * 0.5f;
+							particle_pos.y += GameConsts::invader_size.y * 0.5f;
+							AddExplosionParticles(particle_pos, instance->invader_fleet_speed, 500, 20);
+
 							if (instance->invader_alive_count == 1)
 								instance->new_fleet_timer = game_state->total_seconds + 3;
 							else
@@ -108,6 +113,23 @@ void UpdateGameplay(double elapsed)
 			}
 		}
 		++bullet;
+	}
+
+	float age_elapsed;
+	Particle *particle = instance->particles;
+	Particle *particle_end = particle + GameConsts::max_particles;
+	while (particle < particle_end)
+	{
+		if (particle->age > 0)
+		{
+			particle->age -= elapsed;
+			age_elapsed = 1;
+			if (particle->age < 0.5f) max(0.1f, particle->age * 2);
+			age_elapsed *= elapsed;
+			particle->pos.x += particle->vel.x * age_elapsed;
+			particle->pos.y += particle->vel.y * age_elapsed;
+		}
+		++particle;
 	}
 
 	if (instance->gameover_timer > 0 && game_state->total_seconds >= instance->gameover_timer)
