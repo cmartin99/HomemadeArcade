@@ -24,7 +24,7 @@ void AddParticle(Vector2 pos, Vector2 vel, Vector2 size, Color color, float age)
 
 static Color explosion_colors[] = {Color(0.4, 0.4, 0.4, 1), Color(1, 0, 0, 1), Color(1, 0.42, 0, 1), Color(1, 0.85, 0, 1)};
 
-void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 count, Color base_color)
+void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 count, Color base_color, TdPoint2 ship_size)
 {
 	auto game_state = GetGameState();
 	Vector2 new_pos, vel, size;
@@ -38,12 +38,27 @@ void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 co
 		age = tdRandomNextDouble(game_state->rng) * 0.75 + 0.35;
 		vel.x = tdRandomNextDouble(game_state->rng) * max_vel2 - max_vel + momentum;
 		vel.y = tdRandomNextDouble(game_state->rng) * max_vel2 - max_vel;
-		new_pos.x = pos.x + vel.x / max_vel * GameConsts::invader_size.x * 0.5f;
-		new_pos.y = pos.y + vel.y / max_vel * GameConsts::invader_size.y * 0.5f;
+		new_pos.x = pos.x + vel.x / max_vel * ship_size.x * 0.5f;
+		new_pos.y = pos.y + vel.y / max_vel * ship_size.y * 0.5f;
 		size.x = size.y = tdRandomNextDouble(game_state->rng) * 3 + 2;
 		color = tdRandomNext(game_state->rng, 2) ? base_color : explosion_colors[tdRandomNext(game_state->rng, 4)];
 		AddParticle(new_pos, vel, size, color, age);
 	}
+}
+
+ALWAYS_INLINE void AddInvaderExplosionParticles(Vector2 pos, float momentum)
+{
+	AddExplosionParticles(pos, momentum, 500, 20, Color(0, 0.5, 0, 1), GameConsts::invader_size);
+}
+
+ALWAYS_INLINE void AddUfoExplosionParticles(Vector2 pos, float momentum)
+{
+	AddExplosionParticles(pos, momentum, 500, 50, Colors::Yellow, GameConsts::ufo_size);
+}
+
+ALWAYS_INLINE void AddDefenderExplosionParticles(Vector2 pos, float momentum)
+{
+	AddExplosionParticles(pos, momentum, 500, 100, Colors::White, GameConsts::defender_size);
 }
 
 void PlayerFireBullet()

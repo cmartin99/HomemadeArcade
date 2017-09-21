@@ -53,44 +53,50 @@ void UpdateGameplay(double elapsed)
 			}
 		}
 
-		// Update fleet extent and Find invaders to drop bombs
-		instance->invader_fleet_extent.x = FLT_MAX;
-		instance->invader_fleet_extent.y = -FLT_MAX;
-		instance->invader_fleet_extent.z = -FLT_MAX;
-		int32 invader_index = 0;
-		Invader *invader = instance->invader_fleet;
-		Invader *invader_end = invader + InvaderCount();
-		while (invader < invader_end)
+		if (instance->invader_fleet_state != GameInstance::in_Waiting)
 		{
-			if (invader->alive)
+			// Update fleet extent and Find invaders to drop bombs
+			instance->invader_fleet_extent.x = FLT_MAX;
+			instance->invader_fleet_extent.y = -FLT_MAX;
+			instance->invader_fleet_extent.z = -FLT_MAX;
+			int32 invader_index = 0;
+			Invader *invader = instance->invader_fleet;
+			Invader *invader_end = invader + InvaderCount();
+			while (invader < invader_end)
 			{
-				uint32 row = invader_index % GameConsts::fleet_size.x;
-				uint32 col = invader_index / GameConsts::fleet_size.x;
-				float x = instance->invader_fleet_pos.x + row * GameConsts::invader_spacing.x;
-				float y = instance->invader_fleet_pos.y + col * GameConsts::invader_spacing.y;
-
-				if (x < instance->invader_fleet_extent.x)
-					instance->invader_fleet_extent.x = x;
-				if (x + GameConsts::invader_size.x > instance->invader_fleet_extent.y)
-					instance->invader_fleet_extent.y = x + GameConsts::invader_size.x;
-				if (y + GameConsts::invader_size.y > instance->invader_fleet_extent.z)
-					instance->invader_fleet_extent.z = y + GameConsts::invader_size.y;
-
-				// Drop bomb (maybe)
-				Vector2 bomb_pos(x, y);
-				bomb_pos.x += GameConsts::invader_size.x / 2 - GameConsts::bullet_size.x / 2;
-				bomb_pos.y += GameConsts::invader_size.y - 4;
-				if (bomb_pos.x > instance->ship->pos.x - 200 && bomb_pos.x < instance->ship->pos.x + GameConsts::defender_size.x + 200)
+				if (invader->alive)
 				{
-					if (game_state->total_seconds > instance->invader_bomb_timer)
+					uint32 row = invader_index % GameConsts::fleet_size.x;
+					uint32 col = invader_index / GameConsts::fleet_size.x;
+					float x = instance->invader_fleet_pos.x + row * GameConsts::invader_spacing.x;
+					float y = instance->invader_fleet_pos.y + col * GameConsts::invader_spacing.y;
+
+					if (x < instance->invader_fleet_extent.x)
+						instance->invader_fleet_extent.x = x;
+					if (x + GameConsts::invader_size.x > instance->invader_fleet_extent.y)
+						instance->invader_fleet_extent.y = x + GameConsts::invader_size.x;
+					if (y + GameConsts::invader_size.y > instance->invader_fleet_extent.z)
+						instance->invader_fleet_extent.z = y + GameConsts::invader_size.y;
+
+					if (player->lives > 0)
 					{
-						InvaderDropBomb(bomb_pos, GameConsts::invader_bomb_speed);
-						instance->invader_bomb_timer = game_state->total_seconds + 1;
+						// Drop bomb (maybe)
+						Vector2 bomb_pos(x, y);
+						bomb_pos.x += GameConsts::invader_size.x / 2 - GameConsts::bullet_size.x / 2;
+						bomb_pos.y += GameConsts::invader_size.y - 4;
+						if (bomb_pos.x > instance->ship->pos.x - 200 && bomb_pos.x < instance->ship->pos.x + GameConsts::defender_size.x + 200)
+						{
+							if (game_state->total_seconds > instance->invader_bomb_timer)
+							{
+								InvaderDropBomb(bomb_pos, GameConsts::invader_bomb_speed);
+								instance->invader_bomb_timer = game_state->total_seconds + 1;
+							}
+						}
 					}
 				}
+				++invader;
+				++invader_index;
 			}
-			++invader;
-			++invader_index;
 		}
 	}
 
@@ -104,7 +110,7 @@ void UpdateGameplay(double elapsed)
 			ufo->pos.y = 0;
 			instance->ufo_spawn_timer = game_state->total_seconds + 1;
 		}
-		else
+		else if (player->lives > 0 && player->gameplay_mode != Player::gm_Respawn)
 		{
 			// Drop bomb (maybe)
 			Vector2 bomb_pos = ufo->pos;
@@ -165,17 +171,19 @@ void UpdateGameplay(double elapsed)
 						bullet->pos.x + GameConsts::bullet_size.x > ufo->pos.x + 1 &&
 						bullet->pos.x < ufo->pos.x + GameConsts::ufo_size.x - 1)
 					{
-						ufo->pos.y = 0;
 						bullet->alive = 0;
 						instance->ufo_spawn_timer = game_state->total_seconds + 1;
 
 						Vector2 particle_pos = ufo->pos;
 						particle_pos.x += GameConsts::ufo_size.x * 0.5f;
 						particle_pos.y += GameConsts::ufo_size.y * 0.5f;
-						AddExplosionParticles(particle_pos, ufo->vel.x, 500, 50, Colors::Yellow);
+						AddUfoExplosionParticles(particle_pos, ufo->vel.x);
 
 						player->score += 250;
 						if (player->score > instance->high_score) instance->high_score = player->score;
+
+						// flag ufo as dead/inactive
+						ufo->pos.y = 0;
 						break;
 					}
 				}
@@ -205,7 +213,7 @@ void UpdateGameplay(double elapsed)
 								Vector2 particle_pos = invader_pos;
 								particle_pos.x += GameConsts::invader_size.x * 0.5f;
 								particle_pos.y += GameConsts::invader_size.y * 0.5f;
-								AddExplosionParticles(particle_pos, instance->invader_fleet_speed, 500, 20, Color(0, 0.5, 0, 1));
+								AddInvaderExplosionParticles(particle_pos, instance->invader_fleet_speed);
 
 								if (instance->invader_alive_count == 1)
 									instance->new_fleet_timer = game_state->total_seconds + 3;
@@ -237,7 +245,7 @@ void UpdateGameplay(double elapsed)
 					Vector2 particle_pos = ship->pos;
 					particle_pos.x += GameConsts::defender_size.x * 0.5f;
 					particle_pos.y += GameConsts::defender_size.y * 0.5f;
-					AddExplosionParticles(particle_pos, ufo->vel.x, 500, 100, Colors::White);
+					AddDefenderExplosionParticles(particle_pos, ufo->vel.x);
 
 					if (--player->lives == 0)
 					{
@@ -245,7 +253,10 @@ void UpdateGameplay(double elapsed)
 					}
 					else
 					{
-						instance->ship->pos.x = 100;
+						player->gameplay_mode = Player::gm_Respawn;
+						player->respawn_timer = game_state->total_seconds + GameConsts::defender_respawn_time;
+						instance->prev_invader_fleet_state = instance->invader_fleet_state;
+						instance->invader_fleet_state = GameInstance::in_Waiting;
 					}
 					break;
 				}
@@ -270,7 +281,15 @@ void UpdateGameplay(double elapsed)
 		++particle;
 	}
 
-	if (instance->gameover_timer > 0 && game_state->total_seconds >= instance->gameover_timer)
+	if (player->gameplay_mode == Player::gm_Respawn)
+	{
+		if (game_state->total_seconds >= player->respawn_timer)
+		{
+			player->gameplay_mode = Player::gm_Play;
+			instance->invader_fleet_state = instance->prev_invader_fleet_state;
+		}
+	}
+	else if (instance->gameover_timer > 0 && game_state->total_seconds >= instance->gameover_timer)
 	{
 		player->mode = Player::pm_Menu;
 	}

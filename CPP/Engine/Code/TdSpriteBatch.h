@@ -74,6 +74,7 @@ void tdVkDrawBoxDF(TdSpriteBatch&, float x, float y, float w, float h, const Col
 void tdVkDrawBoxDF(TdSpriteBatch&, float x, float y, float w, float h, const Color&, float border_size, const Color& border_color);
 ALWAYS_INLINE void tdVkDrawBox(TdSpriteBatch& sb, const TdRect& r, const Color& c) { tdVkDrawBox(sb, r.x, r.y, r.w, r.h, c); }
 ALWAYS_INLINE void tdVkDrawBox(TdSpriteBatch& sb, const TdRect& r, const Color& c, const TdVkTexture& texture, const TdRect* src) { tdVkDrawBox(sb, r.x, r.y, r.w, r.h, c, texture, src); }
+ALWAYS_INLINE void tdVkDrawBox(TdSpriteBatch* sb, const TdRect& r, const Color& c, const TdVkTexture& texture, const TdRect* src) { tdVkDrawBox(*sb, r.x, r.y, r.w, r.h, c, texture, src); }
 ALWAYS_INLINE void tdVkDrawBox(TdSpriteBatch& sb, const TdRect& r, const Color& c, float border_size, const Color& border_color) { tdVkDrawBox(sb, r.x, r.y, r.w, r.h, c, border_size, border_color); }
 ALWAYS_INLINE void tdVkDrawBoxDF(TdSpriteBatch& sb, const TdRect& r, const Color& c) { tdVkDrawBoxDF(sb, r.x, r.y, r.w, r.h, c); }
 ALWAYS_INLINE void tdVkDrawBoxDF(TdSpriteBatch& sb, const TdRect& r, const Color& c, float border_size, const Color& border_color) { tdVkDrawBoxDF(sb, r.x, r.y, r.w, r.h, c, border_size, border_color); }

@@ -29,16 +29,17 @@ static char commas10[20];
 static char commas11[20];
 static char commas12[20];
 
-const TdPoint2 GameConsts::invader_size = {54, 54};
-const TdPoint2 GameConsts::invader_spacing = {85, 72};
+const TdPoint2 GameConsts::invader_size = {64, 56};
+const TdPoint2 GameConsts::invader_spacing = {90, 72};
 const float GameConsts::invader_fleet_creep_speed = 20;
 const float GameConsts::invader_fleet_creep_distance = 20;
 const Vector2 GameConsts::invader_bomb_speed = {0, 350};
 const float GameConsts::ufo_speed = 300;
-const TdPoint2 GameConsts::ufo_size = {80, 30};
+const TdPoint2 GameConsts::ufo_size = {88, 32};
 const Vector2 GameConsts::ufo_bomb_speed = {0, 750};
-const TdPoint2 GameConsts::defender_size = {64, 64};
+const TdPoint2 GameConsts::defender_size = {72, 48};
 const Vector2 GameConsts::defender_speed = {200, 0};
+const double GameConsts::defender_respawn_time = 2.0;
 const TdPoint2 GameConsts::fleet_size = {12, 6};
 const TdPoint2 GameConsts::bullet_size = {4, 24};
 const Vector2 GameConsts::bullet_speed = {0, 1500};
@@ -181,6 +182,8 @@ void ApplicationNew(TdVkInstance& vulkan)
 	tdVkSpriteBatchInit(*game_state->sprite_batch, *game_state->vulkan, 2000000);
 	game_state->gui_sprite_batch = tdMalloc<TdSpriteBatch>(game_state->perm_arena);
 	tdVkSpriteBatchInit(*game_state->gui_sprite_batch, *game_state->vulkan, 100000);
+
+	tdVkLoadTexture(*game_state->vulkan, "content/textures/spritesheet.ktx", VK_FORMAT_R8G8B8A8_UNORM, game_state->sprite_sheet, false);
 
 	LARGE_INTEGER currentTime;
 	currentTime.QuadPart = 5;

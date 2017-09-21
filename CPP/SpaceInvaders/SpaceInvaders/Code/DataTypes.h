@@ -32,6 +32,7 @@ struct GameConsts
 	static const Vector2 ufo_bomb_speed;
 	static const TdPoint2 defender_size;
 	static const Vector2 defender_speed;
+	static const double defender_respawn_time;
 	static const TdPoint2 fleet_size;
 	static const TdPoint2 bullet_size;
 	static const Vector2 bullet_speed;
@@ -72,13 +73,14 @@ struct DefenderShip
 
 struct GameInstance
 {
-	enum { in_MovingAcross, in_CreepingDown	} invader_fleet_state;
+	enum { in_MovingAcross, in_CreepingDown, in_Waiting } invader_fleet_state, prev_invader_fleet_state;
 	DefenderShip *ship;
 	uint32 invader_alive_count;
 	Invader *invader_fleet;
 	float invader_fleet_speed;
 	Vector2 invader_fleet_pos;
 	float invader_fleet_y_target;
+	int invader_anim_frame;
 	UFO *ufo;
 	Particle *particles;
 	Vector3 invader_fleet_extent;
@@ -93,14 +95,19 @@ struct GameInstance
 	double ufo_spawn_timer;
 	double ufo_bomb_timer;
 	double invader_bomb_timer;
+	double invader_anim_timer;
+	double fire_button_timer;
 };
 
 struct Player
 {
 	enum PlayerMode	{ pm_Menu, pm_Paused, pm_Play };
+	enum GameplayMode { gm_Play, gm_Respawn };
 	uint32 score;
 	PlayerMode mode;
+	GameplayMode gameplay_mode;
 	uint32 lives;
+	double respawn_timer;
 	VkViewport viewport;
 	VkRect2D scissor_rect;
 	ImGui gui;
@@ -121,6 +128,7 @@ struct GameState
 	TdVkInstance* vulkan;
 	TdSpriteBatch* sprite_batch;
 	TdSpriteBatch* gui_sprite_batch;
+	TdVkTexture sprite_sheet;
 	TdInputState input;
 	TdInputState input_prev;
 	double elapsed_scale;

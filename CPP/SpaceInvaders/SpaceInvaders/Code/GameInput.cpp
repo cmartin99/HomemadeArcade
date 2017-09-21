@@ -28,6 +28,11 @@ ALWAYS_INLINE bool IsButtonDownNew(TdButtonState button)
 	return button.button_ended_down && button.half_transition_count;
 }
 
+ALWAYS_INLINE bool IsButtonDown(TdButtonState button)
+{
+	return button.button_ended_down;
+}
+
 void HandleInput()
 {
 	TIMED_BLOCK(HandleInput);
@@ -48,7 +53,7 @@ void HandleInput()
 	ConvertXInput(input.gamepad, game_state->input_prev.gamepad, xi_state.Gamepad);
 
 	// Gameplay inputs
-	if (player->mode == Player::pm_Play && instance->gameover_timer == 0 && player->lives)
+	if (player->mode == Player::pm_Play && instance->gameover_timer == 0 && player->lives && player->gameplay_mode != Player::gm_Respawn)
 	{
 		instance->ship->pos.x += input.gamepad.thumb_left.x * GameConsts::defender_speed.x * game_state->seconds;
 		instance->ship->pos.x = tdClamp(instance->ship->pos.x, 0.f, player->viewport.width - GameConsts::defender_size.x);
@@ -60,9 +65,14 @@ void HandleInput()
 #endif
 		instance->ship->pos.x = tdClamp(instance->ship->pos.x, 0.f, player->viewport.width - GameConsts::defender_size.x);
 
-		if (IsButtonDownNew(input.gamepad.a) || IsButtonDownNew(input.mouse.mb_left))
+		if (IsButtonDown(input.gamepad.a) || IsButtonDown(input.mouse.mb_left))
 		{
-			PlayerFireBullet();
+			if (game_state->total_seconds >= instance->fire_button_timer ||
+				IsButtonDownNew(input.gamepad.a) || IsButtonDownNew(input.mouse.mb_left))
+			{
+				PlayerFireBullet();
+				instance->fire_button_timer = game_state->total_seconds + 0.2;
+			}
 		}
 	}
 
