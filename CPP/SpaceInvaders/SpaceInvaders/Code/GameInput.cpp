@@ -41,23 +41,32 @@ void HandleInput()
 	input.seconds = game_state->seconds;
 
 	// Set gamepad state
-	memcpy(&game_state->prev_gamepad, &input.gamepad, sizeof(TdGamePadState));
+	memcpy(&game_state->input_prev.gamepad, &input.gamepad, sizeof(TdGamePadState));
 	XINPUT_STATE xi_state;
 	XInputGetState(0, &xi_state);
 	memset(&input.gamepad, 0, sizeof(TdGamePadState));
-	ConvertXInput(input.gamepad, game_state->prev_gamepad, xi_state.Gamepad);
+	ConvertXInput(input.gamepad, game_state->input_prev.gamepad, xi_state.Gamepad);
 
 	// Gameplay inputs
-	if (player->mode == Player::pm_Play && instance->gameover_timer == 0)
+	if (player->mode == Player::pm_Play && instance->gameover_timer == 0 && player->lives)
 	{
 		instance->ship->pos.x += input.gamepad.thumb_left.x * GameConsts::defender_speed.x * game_state->seconds;
 		instance->ship->pos.x = tdClamp(instance->ship->pos.x, 0.f, player->viewport.width - GameConsts::defender_size.x);
+#ifdef _PROFILE_
+		if (input.mouse.mouse_pos.x != game_state->input_prev.mouse.mouse_pos.x)
+		{
+			instance->ship->pos.x = input.mouse.mouse_pos.x - GameConsts::defender_size.x / 2;
+		}
+#endif
+		instance->ship->pos.x = tdClamp(instance->ship->pos.x, 0.f, player->viewport.width - GameConsts::defender_size.x);
 
-		if (IsButtonDownNew(input.gamepad.a))
+		if (IsButtonDownNew(input.gamepad.a) || IsButtonDownNew(input.mouse.mb_left))
 		{
 			PlayerFireBullet();
 		}
 	}
+
+	memcpy(&game_state->input_prev.mouse, &input.mouse, sizeof(TdMouseState));
 }
 
 void HandleRawInput(uint16 vkey, bool key_released)

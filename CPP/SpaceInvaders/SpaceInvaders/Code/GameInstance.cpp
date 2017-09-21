@@ -22,9 +22,9 @@ void AddParticle(Vector2 pos, Vector2 vel, Vector2 size, Color color, float age)
 	particle->age = age;
 }
 
-static Color explosion_colors[] = {Color(0, 0.5, 0, 1), Color(0.4, 0.4, 0.4, 1), Color(1, 0, 0, 1), Color(1, 0.42, 0, 1), Color(1, 0.85, 0, 1)};
+static Color explosion_colors[] = {Color(0.4, 0.4, 0.4, 1), Color(1, 0, 0, 1), Color(1, 0.42, 0, 1), Color(1, 0.85, 0, 1)};
 
-void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 count)
+void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 count, Color base_color)
 {
 	auto game_state = GetGameState();
 	Vector2 new_pos, vel, size;
@@ -41,7 +41,7 @@ void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 co
 		new_pos.x = pos.x + vel.x / max_vel * GameConsts::invader_size.x * 0.5f;
 		new_pos.y = pos.y + vel.y / max_vel * GameConsts::invader_size.y * 0.5f;
 		size.x = size.y = tdRandomNextDouble(game_state->rng) * 3 + 2;
-		color = tdRandomNext(game_state->rng, 2) ? explosion_colors[0] : explosion_colors[tdRandomNext(game_state->rng, 5)];
+		color = tdRandomNext(game_state->rng, 2) ? base_color : explosion_colors[tdRandomNext(game_state->rng, 4)];
 		AddParticle(new_pos, vel, size, color, age);
 	}
 }
@@ -61,6 +61,29 @@ void PlayerFireBullet()
 			bullet->alive = 1;
 			bullet->pos.x = instance->ship->pos.x + GameConsts::defender_size.x / 2 - GameConsts::bullet_size.x / 2;
 			bullet->pos.y = instance->ship->pos.y - GameConsts::bullet_size.y;
+			bullet->vel.y = -GameConsts::bullet_speed.y;
+			break;
+		}
+		++bullet;
+	}
+}
+
+void InvaderDropBomb(Vector2 pos, Vector2 vel)
+{
+	auto game_state = GetGameState();
+	GameInstance *instance = game_state->instance;
+
+	// Recycle first free (dead) bullet
+	Bullet *bullet = instance->bullets;
+	Bullet *bullet_end = bullet + instance->bullet_count;
+	while (bullet < bullet_end)
+	{
+		if (!bullet->alive)
+		{
+			bullet->alive = 1;
+			bullet->pos.x = pos.x;
+			bullet->pos.y = pos.y;
+			bullet->vel.y = vel.y;
 			break;
 		}
 		++bullet;
@@ -102,11 +125,12 @@ void GameInstanceNew(Player* player)
 	instance->gameover_timer = 0;
 
 	player->mode = Player::pm_Play;
-	player->lives = 2;
+	player->lives = 3;
 	player->score = 0;
 	instance->ship->pos.x = 100;
 	instance->ship->pos.y = player->viewport.height - GameConsts::defender_size.y * 2;
 
 	instance->ufo->pos.x = -GameConsts::ufo_size.x - 1;
-	instance->ufo->pos.y = 30;
+	instance->ufo->pos.y = 0;
+	instance->ufo_spawn_timer = game_state->total_seconds + 1;
 }

@@ -26,7 +26,10 @@ struct GameConsts
 	static const TdPoint2 invader_spacing;
 	static const float invader_fleet_creep_speed;
 	static const float invader_fleet_creep_distance;
+	static const Vector2 invader_bomb_speed;
+	static const float ufo_speed;
 	static const TdPoint2 ufo_size;
+	static const Vector2 ufo_bomb_speed;
 	static const TdPoint2 defender_size;
 	static const Vector2 defender_speed;
 	static const TdPoint2 fleet_size;
@@ -48,6 +51,7 @@ struct Bullet
 {
 	int32 alive;
 	Vector2 pos;
+	Vector2 vel;
 };
 
 struct Invader
@@ -58,6 +62,7 @@ struct Invader
 struct UFO
 {
 	Vector2 pos;
+	Vector2 vel;
 };
 
 struct DefenderShip
@@ -85,6 +90,9 @@ struct GameInstance
 	uint32 high_score;
 	double new_fleet_timer;
 	double gameover_timer;
+	double ufo_spawn_timer;
+	double ufo_bomb_timer;
+	double invader_bomb_timer;
 };
 
 struct Player
@@ -114,7 +122,7 @@ struct GameState
 	TdSpriteBatch* sprite_batch;
 	TdSpriteBatch* gui_sprite_batch;
 	TdInputState input;
-	TdGamePadState prev_gamepad;
+	TdInputState input_prev;
 	double elapsed_scale;
 	bool exit_game;
 };

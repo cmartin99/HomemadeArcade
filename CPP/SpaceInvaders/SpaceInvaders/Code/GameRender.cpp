@@ -79,6 +79,7 @@ void RenderGame(Player* player)
 	GameInstance *instance = game_state->instance;
 
 	float color_dim = player->mode == Player::pm_Play ? 1.0f : 0.25f;
+	TdRect rect;
 
 	// Draw stars background
 	tdRandomSeed(instance->stars_rng, instance->stars_rng_seed1, instance->stars_rng_seed2);
@@ -87,60 +88,6 @@ void RenderGame(Player* player)
 		float x = tdRandomNext(instance->stars_rng, player->viewport.width);
 		float y = tdRandomNext(instance->stars_rng, player->viewport.height);
 		tdVkDrawBox(sprite_batch, x, y, 1, 1, Color(1) * color_dim);
-	}
-
-	// Draw Invader Fleet
-	TdRect rect = {0, 0, GameConsts::invader_size.x, GameConsts::invader_size.y};
-	instance->invader_fleet_extent.x = FLT_MAX;
-	instance->invader_fleet_extent.y = -FLT_MAX;
-	instance->invader_fleet_extent.z = -FLT_MAX;
-	instance->invader_alive_count = 0;
-	int32 invader_index = 0;
-	Invader *invader = instance->invader_fleet;
-	Invader *invader_end = invader + InvaderCount();
-	while (invader < invader_end)
-	{
-		if (invader->alive)
-		{
-			++instance->invader_alive_count;
-			uint32 row = invader_index % GameConsts::fleet_size.x;
-			uint32 col = invader_index / GameConsts::fleet_size.x;
-			rect.x = instance->invader_fleet_pos.x + row * GameConsts::invader_spacing.x;
-			rect.y = instance->invader_fleet_pos.y + col * GameConsts::invader_spacing.y;
-			tdVkDrawBox(sprite_batch, rect, Color(0,0.5,0,1) * color_dim);
-
-			if (rect.x < instance->invader_fleet_extent.x)
-				instance->invader_fleet_extent.x = rect.x;
-			if (rect.x + rect.w > instance->invader_fleet_extent.y)
-				instance->invader_fleet_extent.y = rect.x + rect.w;
-			if (rect.y + rect.h > instance->invader_fleet_extent.z)
-				instance->invader_fleet_extent.z = rect.y + rect.h;
-		}
-		++invader;
-		++invader_index;
-	}
-
-	// Draw Defender (player) ship
-	rect.x = instance->ship->pos.x;
-	rect.y = instance->ship->pos.y;
-	rect.w = GameConsts::defender_size.x;
-	rect.h = GameConsts::defender_size.y;
-	tdVkDrawBox(sprite_batch, rect, Color(1) * color_dim);
-
-	// Draw all bullets
-	rect.w = GameConsts::bullet_size.x;
-	rect.h = GameConsts::bullet_size.y;
-	Bullet *bullet = instance->bullets;
-	Bullet *bullet_end = bullet + instance->bullet_count;
-	while (bullet < bullet_end)
-	{
-		if (bullet->alive)
-		{
-			rect.x = bullet->pos.x;
-			rect.y = bullet->pos.y;
-			tdVkDrawBox(sprite_batch, rect, Color(1,1,0,1) * color_dim);
-		}
-		++bullet;
 	}
 
 	// Particles
@@ -172,15 +119,76 @@ void RenderGame(Player* player)
 		++particle;
 	}
 
-	// Draw player extra lives
-	rect.x = 40;
-	rect.w = GameConsts::defender_size.x / 2;
-	rect.h = GameConsts::defender_size.y / 2;
-	rect.y = player->viewport.height - rect.h - 10;
-	for (uint32 i = 0; i < player->lives; ++i)
+	// Draw Invader Fleet
+	rect.w = GameConsts::invader_size.x;
+	rect.h = GameConsts::invader_size.y;
+	instance->invader_alive_count = 0;
+	int32 invader_index = 0;
+	Invader *invader = instance->invader_fleet;
+	Invader *invader_end = invader + InvaderCount();
+	while (invader < invader_end)
 	{
+		if (invader->alive)
+		{
+			++instance->invader_alive_count;
+			uint32 row = invader_index % GameConsts::fleet_size.x;
+			uint32 col = invader_index / GameConsts::fleet_size.x;
+			rect.x = instance->invader_fleet_pos.x + row * GameConsts::invader_spacing.x;
+			rect.y = instance->invader_fleet_pos.y + col * GameConsts::invader_spacing.y;
+			tdVkDrawBox(sprite_batch, rect, Color(0, 0.5, 0, 1) * color_dim);
+		}
+		++invader;
+		++invader_index;
+	}
+
+	// Draw UFO
+	if (instance->ufo->pos.y > 0)
+	{
+		rect.x = instance->ufo->pos.x;
+		rect.y = instance->ufo->pos.y;
+		rect.w = GameConsts::ufo_size.x;
+		rect.h = GameConsts::ufo_size.y;
+		tdVkDrawBox(sprite_batch, rect, Colors::Yellow * color_dim);
+	}
+
+	// Draw Defender (player) ship
+	if (player->lives)
+	{
+		rect.x = instance->ship->pos.x;
+		rect.y = instance->ship->pos.y;
+		rect.w = GameConsts::defender_size.x;
+		rect.h = GameConsts::defender_size.y;
 		tdVkDrawBox(sprite_batch, rect, Color(1) * color_dim);
-		rect.x += rect.w + 10;
+	}
+
+	// Draw all bullets
+	rect.w = GameConsts::bullet_size.x;
+	rect.h = GameConsts::bullet_size.y;
+	Bullet *bullet = instance->bullets;
+	Bullet *bullet_end = bullet + instance->bullet_count;
+	while (bullet < bullet_end)
+	{
+		if (bullet->alive)
+		{
+			rect.x = bullet->pos.x;
+			rect.y = bullet->pos.y;
+			tdVkDrawBox(sprite_batch, rect, Color(1,1,0,1) * color_dim);
+		}
+		++bullet;
+	}
+
+	// Draw player extra lives
+	if (player->lives)
+	{
+		rect.x = 40;
+		rect.w = GameConsts::defender_size.x / 2;
+		rect.h = GameConsts::defender_size.y / 2;
+		rect.y = player->viewport.height - rect.h - 10;
+		for (uint32 i = 0; i < player->lives - 1; ++i)
+		{
+			tdVkDrawBox(sprite_batch, rect, Color(1) * color_dim);
+			rect.x += rect.w + 10;
+		}
 	}
 
 	// Draw HUD
