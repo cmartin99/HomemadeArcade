@@ -53,6 +53,7 @@ struct Bullet
 	int32 alive;
 	Vector2 pos;
 	Vector2 vel;
+	Color color;
 };
 
 struct Invader
@@ -81,6 +82,7 @@ struct GameInstance
 	Vector2 invader_fleet_pos;
 	float invader_fleet_y_target;
 	int invader_anim_frame;
+	Invader *invader_last_to_drop_bomb;
 	UFO *ufo;
 	Particle *particles;
 	Vector3 invader_fleet_extent;

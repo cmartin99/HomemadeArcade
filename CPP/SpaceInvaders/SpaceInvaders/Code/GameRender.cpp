@@ -88,7 +88,9 @@ void RenderGame(Player* player)
 	{
 		float x = tdRandomNext(instance->stars_rng, player->viewport.width);
 		float y = tdRandomNext(instance->stars_rng, player->viewport.height);
-		tdVkDrawBox(sprite_batch, x, y, 1, 1, Color(1) * color_dim);
+		float c = (tdRandomNext(instance->stars_rng, 128) + 128) / 255.f;
+		float s = tdRandomNext(instance->stars_rng, 3) + 1;
+		tdVkDrawBox(sprite_batch, x, y, s, s, Color(c, c, c, 1.f) * color_dim);
 	}
 
 	// Particles
@@ -121,13 +123,19 @@ void RenderGame(Player* player)
 	}
 
 	// Draw Invader Fleet
-	if (game_state->total_seconds >= instance->invader_anim_timer)
+	if (player->mode == Player::pm_Play)
 	{
-		instance->invader_anim_frame = ++instance->invader_anim_frame % 2;
-		instance->invader_anim_timer = game_state->total_seconds + 0.25;
+		if (game_state->total_seconds >= instance->invader_anim_timer)
+		{
+			instance->invader_anim_frame = ++instance->invader_anim_frame % 2;
+			double speed_fac = instance->invader_fleet_state == GameInstance::in_CreepingDown
+				? 1.0
+				: max(0.1, 1.0 - min(1.0, ((abs(instance->invader_fleet_speed) - 80) / 1000.0)));
+			instance->invader_anim_timer = game_state->total_seconds + 0.5 * speed_fac;
+		}
 	}
 	src_rect = {0, 0, 16, 14};
-	//if (instance->invader_anim_frame == 1) src_rect.y = 15;
+	if (instance->invader_anim_frame == 1) src_rect.y = 15;
 	rect.w = GameConsts::invader_size.x;
 	rect.h = GameConsts::invader_size.y;
 	instance->invader_alive_count = 0;
@@ -189,7 +197,7 @@ void RenderGame(Player* player)
 		{
 			rect.x = bullet->pos.x;
 			rect.y = bullet->pos.y;
-			tdVkDrawBox(sprite_batch, rect, Color(1,1,0,1) * color_dim);
+			tdVkDrawBox(sprite_batch, rect, bullet->color * color_dim);
 		}
 		++bullet;
 	}

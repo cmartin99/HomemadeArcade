@@ -53,9 +53,12 @@ void UpdateGameplay(double elapsed)
 			}
 		}
 
-		if (instance->invader_fleet_state != GameInstance::in_Waiting)
+		if (instance->invader_alive_count && instance->invader_fleet_state != GameInstance::in_Waiting)
 		{
-			// Update fleet extent and Find invaders to drop bombs
+			// Update fleet extent and find (closest) invader to drop a bomb
+			Vector2 closest_dist = {FLT_MAX, FLT_MAX};
+			Vector2 closest_pos;
+			Invader *closest_invader = nullptr;
 			instance->invader_fleet_extent.x = FLT_MAX;
 			instance->invader_fleet_extent.y = -FLT_MAX;
 			instance->invader_fleet_extent.z = -FLT_MAX;
@@ -78,24 +81,39 @@ void UpdateGameplay(double elapsed)
 					if (y + GameConsts::invader_size.y > instance->invader_fleet_extent.z)
 						instance->invader_fleet_extent.z = y + GameConsts::invader_size.y;
 
-					if (player->lives > 0)
+					if (invader != instance->invader_last_to_drop_bomb)
 					{
-						// Drop bomb (maybe)
-						Vector2 bomb_pos(x, y);
-						bomb_pos.x += GameConsts::invader_size.x / 2 - GameConsts::bullet_size.x / 2;
-						bomb_pos.y += GameConsts::invader_size.y - 4;
-						if (bomb_pos.x > instance->ship->pos.x - 200 && bomb_pos.x < instance->ship->pos.x + GameConsts::defender_size.x + 200)
+						// find best (closest) invader to drop a bomb on player
+						double dx = abs(x - instance->ship->pos.x);
+						double dy = abs(y - instance->ship->pos.y);
+						if (dx < closest_dist.x || (dx == closest_dist.x && dy < closest_dist.y))
 						{
-							if (game_state->total_seconds > instance->invader_bomb_timer)
-							{
-								InvaderDropBomb(bomb_pos, GameConsts::invader_bomb_speed);
-								instance->invader_bomb_timer = game_state->total_seconds + 1;
-							}
+							closest_dist.x = dx;
+							closest_dist.y = dy;
+							closest_pos.x = x;
+							closest_pos.y = y;
+							closest_invader = invader;
 						}
 					}
 				}
 				++invader;
 				++invader_index;
+			}
+
+			if (player->lives > 0)
+			{
+				// Drop bomb (maybe)
+				closest_pos.x += GameConsts::invader_size.x / 2 - GameConsts::bullet_size.x / 2;
+				closest_pos.y += GameConsts::invader_size.y - 8;
+				if (closest_pos.x > instance->ship->pos.x - 200 && closest_pos.x < instance->ship->pos.x + GameConsts::defender_size.x + 200)
+				{
+					if (game_state->total_seconds > instance->invader_bomb_timer)
+					{
+						InvaderDropBomb(closest_pos);
+						instance->invader_bomb_timer = game_state->total_seconds + 0.5;
+						instance->invader_last_to_drop_bomb = closest_invader;
+					}
+				}
 			}
 		}
 	}
@@ -120,7 +138,7 @@ void UpdateGameplay(double elapsed)
 			{
 				if (game_state->total_seconds > instance->ufo_bomb_timer)
 				{
-					InvaderDropBomb(bomb_pos, GameConsts::ufo_bomb_speed);
+					UfoDropBomb(bomb_pos);
 					instance->ufo_bomb_timer = game_state->total_seconds + 2;
 				}
 			}
@@ -130,7 +148,7 @@ void UpdateGameplay(double elapsed)
 	{
 		if (game_state->total_seconds > instance->ufo_spawn_timer)
 		{
-			if (tdRandomNext(game_state->rng, 5) == 0)
+			if (tdRandomNext(game_state->rng, 15) == 0)
 			{
 				ufo->pos.y = 56;
 				if (tdRandomNext(game_state->rng, 2) == 0)
@@ -202,10 +220,10 @@ void UpdateGameplay(double elapsed)
 							invader_pos.x = instance->invader_fleet_pos.x + row * GameConsts::invader_spacing.x;
 							invader_pos.y = instance->invader_fleet_pos.y + col * GameConsts::invader_spacing.y;
 
-							if (bullet->pos.y < invader_pos.y + GameConsts::invader_size.y - 2 &&
+							if (bullet->pos.y < invader_pos.y + GameConsts::invader_size.y - 12 &&
 								bullet->pos.y + GameConsts::bullet_size.y > invader_pos.y + 2 &&
-								bullet->pos.x + GameConsts::bullet_size.x > invader_pos.x + 1 &&
-								bullet->pos.x < invader_pos.x + GameConsts::invader_size.x - 1)
+								bullet->pos.x + GameConsts::bullet_size.x > invader_pos.x + 4 &&
+								bullet->pos.x < invader_pos.x + GameConsts::invader_size.x - 4)
 							{
 								invader->alive = 0;
 								bullet->alive = 0;
@@ -233,13 +251,13 @@ void UpdateGameplay(double elapsed)
 					}
 				}
 			}
-			else if (player->lives)
+			else if (player->lives && player->gameplay_mode != Player::gm_Respawn)
 			{
 				DefenderShip *ship = instance->ship;
 				if (bullet->pos.y < ship->pos.y + GameConsts::defender_size.y - 2 &&
-					bullet->pos.y + GameConsts::bullet_size.y > ship->pos.y + 2 &&
-					bullet->pos.x + GameConsts::bullet_size.x > ship->pos.x + 1 &&
-					bullet->pos.x < ship->pos.x + GameConsts::defender_size.x - 1)
+					bullet->pos.y + GameConsts::bullet_size.y > ship->pos.y + 16 &&
+					bullet->pos.x + GameConsts::bullet_size.x > ship->pos.x + 8 &&
+					bullet->pos.x < ship->pos.x + GameConsts::defender_size.x - 8)
 				{
 					bullet->alive = 0;
 					Vector2 particle_pos = ship->pos;

@@ -24,7 +24,7 @@ void AddParticle(Vector2 pos, Vector2 vel, Vector2 size, Color color, float age)
 
 static Color explosion_colors[] = {Color(0.4, 0.4, 0.4, 1), Color(1, 0, 0, 1), Color(1, 0.42, 0, 1), Color(1, 0.85, 0, 1)};
 
-void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 count, Color base_color, TdPoint2 ship_size)
+void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 count, Color base_color, TdPoint2 ship_size, Vector2 particle_size_range)
 {
 	auto game_state = GetGameState();
 	Vector2 new_pos, vel, size;
@@ -40,7 +40,7 @@ void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 co
 		vel.y = tdRandomNextDouble(game_state->rng) * max_vel2 - max_vel;
 		new_pos.x = pos.x + vel.x / max_vel * ship_size.x * 0.5f;
 		new_pos.y = pos.y + vel.y / max_vel * ship_size.y * 0.5f;
-		size.x = size.y = tdRandomNextDouble(game_state->rng) * 3 + 2;
+		size.x = size.y = tdRandomNextDouble(game_state->rng) * particle_size_range.x + particle_size_range.y;
 		color = tdRandomNext(game_state->rng, 2) ? base_color : explosion_colors[tdRandomNext(game_state->rng, 4)];
 		AddParticle(new_pos, vel, size, color, age);
 	}
@@ -48,49 +48,26 @@ void AddExplosionParticles(Vector2 pos, float momentum, float max_vel, uint32 co
 
 ALWAYS_INLINE void AddInvaderExplosionParticles(Vector2 pos, float momentum)
 {
-	AddExplosionParticles(pos, momentum, 500, 20, Color(0, 0.5, 0, 1), GameConsts::invader_size);
+	AddExplosionParticles(pos, momentum, 500, 20, Color(0, 0.55, 0.05, 1), GameConsts::invader_size, Vector2(4, 2));
 }
 
 ALWAYS_INLINE void AddUfoExplosionParticles(Vector2 pos, float momentum)
 {
-	AddExplosionParticles(pos, momentum, 500, 50, Colors::Yellow, GameConsts::ufo_size);
+	AddExplosionParticles(pos, momentum, 500, 60, Color(0.66, 0, 0.77, 1), GameConsts::ufo_size, Vector2(6, 3));
 }
 
 ALWAYS_INLINE void AddDefenderExplosionParticles(Vector2 pos, float momentum)
 {
-	AddExplosionParticles(pos, momentum, 500, 100, Colors::White, GameConsts::defender_size);
+	AddExplosionParticles(pos, momentum, 500, 100, Colors::White, GameConsts::defender_size, Vector2(8, 3));
 }
 
-void PlayerFireBullet()
+void AddBullet(Vector2 pos, Vector2 vel, Color color)
 {
 	auto game_state = GetGameState();
-	GameInstance *instance = game_state->instance;
 
 	// Recycle first free (dead) bullet
-	Bullet *bullet = instance->bullets;
-	Bullet *bullet_end = bullet + instance->bullet_count;
-	while (bullet < bullet_end)
-	{
-		if (!bullet->alive)
-		{
-			bullet->alive = 1;
-			bullet->pos.x = instance->ship->pos.x + GameConsts::defender_size.x / 2 - GameConsts::bullet_size.x / 2;
-			bullet->pos.y = instance->ship->pos.y - GameConsts::bullet_size.y;
-			bullet->vel.y = -GameConsts::bullet_speed.y;
-			break;
-		}
-		++bullet;
-	}
-}
-
-void InvaderDropBomb(Vector2 pos, Vector2 vel)
-{
-	auto game_state = GetGameState();
-	GameInstance *instance = game_state->instance;
-
-	// Recycle first free (dead) bullet
-	Bullet *bullet = instance->bullets;
-	Bullet *bullet_end = bullet + instance->bullet_count;
+	Bullet *bullet = game_state->instance->bullets;
+	Bullet *bullet_end = bullet + game_state->instance->bullet_count;
 	while (bullet < bullet_end)
 	{
 		if (!bullet->alive)
@@ -98,24 +75,46 @@ void InvaderDropBomb(Vector2 pos, Vector2 vel)
 			bullet->alive = 1;
 			bullet->pos.x = pos.x;
 			bullet->pos.y = pos.y;
+			bullet->vel.x = vel.x;
 			bullet->vel.y = vel.y;
+			bullet->color = color;
 			break;
 		}
 		++bullet;
 	}
 }
 
+void PlayerFireBullet()
+{
+	auto game_state = GetGameState();
+	Vector2 pos;
+	pos.x = game_state->instance->ship->pos.x + GameConsts::defender_size.x / 2 - GameConsts::bullet_size.x / 2;
+	pos.y = game_state->instance->ship->pos.y - GameConsts::bullet_size.y;
+	AddBullet(pos, Vector2(0, -GameConsts::bullet_speed.y), Color(0.9f, 0.9f, 0.9f, 1.f));
+}
+
+void InvaderDropBomb(Vector2 pos)
+{
+	AddBullet(pos, GameConsts::invader_bomb_speed, Color(0.9f, 0.83f, 0.f, 1.f));
+}
+
+void UfoDropBomb(Vector2 pos)
+{
+	AddBullet(pos, GameConsts::ufo_bomb_speed, Color(0.75f, 0.176f, 0.84f, 1.f));
+}
+
 void NewInvaderFleet(GameInstance* instance)
 {
-	++instance->wave;
+	instance->invader_fleet_state = GameInstance::in_MovingAcross;
 	instance->invader_fleet_pos.x = 100;
-	instance->invader_fleet_pos.y = 100 + min(100, (int)instance->wave * 7);
+	instance->invader_fleet_pos.y = 100 + min(200, (int)instance->wave * 8);
 	instance->invader_fleet_extent = {FLT_MAX, -FLT_MAX, -FLT_MAX};
 
 	for (uint32 i = 0; i < InvaderCount(); ++i)
 		instance->invader_fleet[i].alive = 1;
 
-	instance->invader_fleet_speed = 80 + instance->wave * 2;
+	instance->invader_fleet_speed = 80 + instance->wave * 4;
+	++instance->wave;
 }
 
 void GameInstanceNew(Player* player)
