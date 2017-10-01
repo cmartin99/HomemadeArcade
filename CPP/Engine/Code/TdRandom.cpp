@@ -84,18 +84,24 @@ int32 tdRandomNext(TdPcg32Random* rng, int32 bound)
 	// should usually terminate quickly; on average (assuming all bounds are
 	// equally likely), 82.25% of the time, we can expect it to require just
 	// one iteration.  In the worst case, someone passes a bound of 2^31 + 1
-	// (i.e., 2147483649), which invalidates almost 50% of the range.  In 
+	// (i.e., 2147483649), which invalidates almost 50% of the range.  In
 	// practice, bounds are typically small and only a tiny amount of the range
 	// is eliminated.
 	for (;;)
 	{
 		int32 r = tdRandomNext(rng);
 		if (r >= threshold)
-		{ 
+		{
 			int32 result = r % bound;
 			return result;
 		}
 	}
+}
+
+//inline
+double tdRandomNextDouble(TdPcg32Random* rng)
+{
+	return tdRandomNext(rng, INT_MAX) / (double)INT_MAX;
 }
 
 int32 tdRandomNext(int32 bound)

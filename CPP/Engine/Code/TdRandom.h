@@ -18,6 +18,6 @@ int32 tdRandomNext(TdPcg32Random* rng);
 int32 tdRandomNext(int32 bound);
 int32 tdRandomNext(TdPcg32Random* rng, int32 bound);
 inline int32 tdRandomNext(TdPcg32Random* rng, int32 min_bound, int32 max_bound) { return tdRandomNext(rng, max_bound - min_bound + 1) + min_bound; }
-inline double tdRandomNextDouble(TdPcg32Random* rng) { return tdRandomNext(rng, INT_MAX) / (double)INT_MAX; }
+double tdRandomNextDouble(TdPcg32Random *rng);
 
 }
