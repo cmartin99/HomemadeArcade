@@ -6,7 +6,7 @@
 #include "TdRandom.h"
 #include "DataTypes.h"
 
-namespace NewGame {
+namespace SpaceInvaders {
 
 extern AppMemory* memory;
 static char temp_text[1000];

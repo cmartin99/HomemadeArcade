@@ -1,7 +1,7 @@
 #pragma once
 #include "Common.h"
 
-namespace NewGame {
+namespace SpaceInvaders {
 
 void RunOneFrame();
 
