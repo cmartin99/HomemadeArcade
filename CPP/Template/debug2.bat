@@ -1,0 +1,1 @@
+devenv deploy\Win32_Template.exe
