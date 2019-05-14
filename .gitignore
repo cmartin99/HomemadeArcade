@@ -69,9 +69,7 @@ git*.zip
 
 # Application files
 
-CPP/SpaceInvaders/x64
 CPP/SpaceInvaders/Deploy/*.*
 CPP/SpaceInvaders/Deploy/Content
 CPP/SpaceInvaders/Build/Bin
 CPP/SpaceInvaders/Build/Libs
-CPP/SpaceInvaders/DebugWorkingDir

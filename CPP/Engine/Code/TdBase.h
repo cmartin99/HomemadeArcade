@@ -11,6 +11,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/norm.hpp>
 #include "glm/gtc/constants.hpp"
 #include "glm/glm.hpp"
 #include "Vulkan.h"
@@ -67,11 +68,12 @@ struct TdMemoryArena
 
 extern TdMemoryArena eng_arena;
 
-ALWAYS_INLINE void tdMemoryArenaInit(TdMemoryArena& arena, uint64 size, void* base_address)
+ALWAYS_INLINE void tdMemoryArenaInit(TdMemoryArena& arena, uint64 size, void* base_address, bool setzero = false)
 {
 	arena.size = size;
 	arena.base = (uint8*)base_address;
 	arena.used = 0;
+	if (setzero) memset(arena.base, 0, size);
 }
 
 ALWAYS_INLINE void* tdMalloc(TdMemoryArena& arena, uint64 size)
@@ -82,6 +84,15 @@ ALWAYS_INLINE void* tdMalloc(TdMemoryArena& arena, uint64 size)
 	return result;
 }
 
+ALWAYS_INLINE void* tdMalloc(TdMemoryArena* arena, uint64 size)
+{
+	assert(arena);
+	assert(arena->size - arena->used >= size);
+	void *result = arena->base + arena->used;
+	arena->used += size;
+	return result;
+}
+
 template<typename T>
 ALWAYS_INLINE T* tdMalloc(TdMemoryArena& arena)
 {
@@ -89,8 +100,22 @@ ALWAYS_INLINE T* tdMalloc(TdMemoryArena& arena)
 }
 
 template<typename T>
+ALWAYS_INLINE T* tdMalloc(TdMemoryArena* arena)
+{
+	assert(arena);
+	return (T*)tdMalloc(arena, sizeof(T));
+}
+
+template<typename T>
 ALWAYS_INLINE T* tdMalloc(TdMemoryArena& arena, uint64 count)
 {
+	return (T*)tdMalloc(arena, sizeof(T) * count);
+}
+
+template<typename T>
+ALWAYS_INLINE T* tdMalloc(TdMemoryArena* arena, uint64 count)
+{
+	assert(arena);
 	return (T*)tdMalloc(arena, sizeof(T) * count);
 }
 

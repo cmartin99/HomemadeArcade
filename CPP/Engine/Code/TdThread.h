@@ -13,11 +13,11 @@ struct TdThreadInfo
 };
 
 typedef void (*TdThreadCallBack)(TdThreadInfo&, void* data);
- 
+
 struct TdThreadWorkItem
 {
 	TdThreadCallBack callback;
-	void* data;	
+	void* data;
 };
 
 struct TdThreadInfo;
@@ -39,6 +39,6 @@ struct TdThreadQueue
 void TdThreadManualQueueUpdate(TdThreadQueue&);
 void TdThreadAddJob(TdThreadQueue&, TdThreadCallBack, void* data);
 void TdThreadWaitAllComplete(TdThreadQueue&);
-void TdInitThreadQueue(TdThreadQueue& queue, uint32 item_capacity, uint32 worker_count);
+void TdInitThreadQueue(TdThreadQueue& queue, uint32 item_capacity, uint32 worker_count, uint64 affinity = 0);
 
 }

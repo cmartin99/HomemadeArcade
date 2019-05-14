@@ -42,7 +42,7 @@ all look identical.
 
 namespace eng {
 
-int* tdGetSimplexNoisePermTable(uint64 seed);
+int* tdGetSimplexNoisePermTable(int* p, uint64 seed); // p array = 512 elements
 
 // Raw Simplex noise - a single noise value.
 float tdRawNoise2D(const float x, const float y, const int perm[]);

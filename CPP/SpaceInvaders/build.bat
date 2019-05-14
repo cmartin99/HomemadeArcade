@@ -1,6 +1,5 @@
 @echo off
 pushd build\bin
-call ..\buildapp.bat
-REM call ..\buildplugins.bat
+call ..\buildapp.bat SpaceInvaders
 popd
 call deploy.bat

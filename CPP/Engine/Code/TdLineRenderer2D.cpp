@@ -82,7 +82,7 @@ VkResult UpdateStorageCPU(TdLineRenderer2D* renderer, VkCommandBuffer command_bu
 
 	if (storage.vb.count)
 	{
-		tdVkFreeResource(*vulkan, storage.vb.buffer, storage.vb.gpu_mem, "LineRenderer2D::UpdateStorageCPU");
+		tdVkFreeResource(vulkan, storage.vb.buffer, storage.vb.gpu_mem, "LineRenderer2D::UpdateStorageCPU");
 	}
 
 	storage.vb.count = vertices.count;
@@ -108,7 +108,7 @@ VkResult UpdateStorageCPU(TdLineRenderer2D* renderer, VkCommandBuffer command_bu
 
 	vkGetBufferMemoryRequirements(vulkan->device, storage.vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(*vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -151,7 +151,7 @@ VkResult UpdateStorageGPU(TdLineRenderer2D* renderer, VkCommandBuffer command_bu
 
 	if (storage.vb.count)
 	{
-		tdVkFreeResource(*vulkan, storage.vb.buffer, storage.vb.gpu_mem, "LineRenderer2D::UpdateStorageGPU");
+		tdVkFreeResource(vulkan, storage.vb.buffer, storage.vb.gpu_mem, "LineRenderer2D::UpdateStorageGPU");
 	}
 
 	storage.vb.count = vertices.count;
@@ -178,7 +178,7 @@ VkResult UpdateStorageGPU(TdLineRenderer2D* renderer, VkCommandBuffer command_bu
 
 	vkGetBufferMemoryRequirements(vulkan->device, stage_vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(*vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -221,7 +221,7 @@ VkResult UpdateStorageGPU(TdLineRenderer2D* renderer, VkCommandBuffer command_bu
 
 	vkGetBufferMemoryRequirements(vulkan->device, storage.vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(*vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -246,7 +246,7 @@ VkResult UpdateStorageGPU(TdLineRenderer2D* renderer, VkCommandBuffer command_bu
 	copy_region.size = vb_size;
 	vkCmdCopyBuffer(command_buffer, stage_vb.buffer, storage.vb.buffer, 1, &copy_region);
 
-	tdVkFreeResource(*vulkan, stage_vb.buffer, stage_vb.gpu_mem, "LineRenderer2D::UpdateStorageGPU_Stage");
+	tdVkFreeResource(vulkan, stage_vb.buffer, stage_vb.gpu_mem, "LineRenderer2D::UpdateStorageGPU_Stage");
 	return VK_SUCCESS;
 }
 
@@ -413,8 +413,8 @@ VkResult tdVkLoadContent(TdLineRenderer2D* renderer, TdVkInstance* vulkan, uint3
 	multisample_state.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 	VkPipelineShaderStageCreateInfo shader_stages[2];
-	shader_stages[0] = tdVkLoadShader(*vulkan, "TdLineRenderer2D.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-	shader_stages[1] = tdVkLoadShader(*vulkan, "TdLineRenderer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+	shader_stages[0] = tdVkLoadShader(vulkan, "TdLineRenderer2D.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	shader_stages[1] = tdVkLoadShader(vulkan, "TdLineRenderer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 	tdArrayInit(renderer->shader_modules, 2);
 	tdArrayAdd(renderer->shader_modules, shader_stages[0].module);
 	tdArrayAdd(renderer->shader_modules, shader_stages[1].module);

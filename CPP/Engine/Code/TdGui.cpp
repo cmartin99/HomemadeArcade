@@ -103,6 +103,13 @@ void tdAddWindow(TdGui& gui, TdWindow* parent, TdWindow& win)
 	}
 }
 
+void tdAddWindow(TdGui* gui, TdWindow* parent, TdWindow* win)
+{
+	assert(gui);
+	assert(win);
+	tdAddWindow(*gui, parent, *win);
+}
+
 void tdFreeWindow(TdGui& gui, TdWindow& win)
 {
 	if (win.parent)
@@ -119,6 +126,13 @@ void tdFreeWindow(TdGui& gui, TdWindow& win)
 	{
 		tdArrayRemoveRef(gui.windows, &win);
 	}
+}
+
+void tdFreeWindow(TdGui* gui, TdWindow* win)
+{
+	assert(gui);
+	assert(win);
+	tdFreeWindow(*gui, *win);
 }
 
 TdPoint2 tdWinWorldPos(const TdWindow *win)
@@ -353,7 +367,7 @@ void tdGuiPresentWinCore(TdGui& gui, TdWindow* win, TdPoint2 world_pos)
 
 	if (win->back_color.a > 0 || (win->border_size > 0 && win->border_color.a > 0) || win->texture == nullptr || (win->texture_rect != nullptr && (win->texture_rect->x != 0 || win->texture_rect->y != 0 || win->texture_rect->w < win->size.x || win->texture_rect->h < win->size.y)))
 	{
-		tdVkDrawBox(gui.sprite_batch, world_pos.x - win->border_size, world_pos.y - win->border_size, win->size.x + win->border_size * 2, win->size.y + win->border_size * 2, win->back_color, win->border_size, win->border_color);
+		tdVkDrawBoxO(&gui.sprite_batch, world_pos.x - win->border_size, world_pos.y - win->border_size, win->size.x + win->border_size * 2, win->size.y + win->border_size * 2, win->back_color, win->border_size, win->border_color);
 	}
 
 	if (win->tex_color.a > 0 && win->texture)
@@ -373,7 +387,7 @@ void tdGuiPresentWinCore(TdGui& gui, TdWindow* win, TdPoint2 world_pos)
 			rect.w = win->size.x;
 			rect.h = win->size.y;
 		}
-		tdVkDrawBox(gui.sprite_batch, world_pos.x + rect.x, world_pos.y + rect.y, rect.w, rect.h, win->tex_color, *win->texture, win->texture_src_rect);
+		tdVkDrawBox(&gui.sprite_batch, world_pos.x + rect.x, world_pos.y + rect.y, rect.w, rect.h, win->tex_color, 0, 0, nullptr, 0, win->texture, win->texture_src_rect);
 	}
 
 	switch (win->type)
@@ -388,19 +402,17 @@ void tdGuiPresentWinCore(TdGui& gui, TdWindow* win, TdPoint2 world_pos)
 
 				if (tb->text_flags & TD_WINTEXT_Center)
 				{
-					Vector2 text_size;
-					tdVkSpriteBatchGetTextSize(&gui.sprite_batch, tb->text, 0, text_size);
-					tdVkDrawTextDF(gui.sprite_batch, tb->text, 0, world_pos.x + tb->text_pos.x + (tb->size.x - text_size.x * tb->text_scale) / 2, world_pos.y + tb->text_pos.y, color, tb->text_scale);
+					Vector2 text_size = tdVkSpriteBatchGetTextSize(&gui.sprite_batch, tb->text, 0, tb->text_scale);
+					tdVkDrawTextDF(&gui.sprite_batch, tb->text, 0, world_pos.x + tb->text_pos.x + (tb->size.x - text_size.x) / 2, world_pos.y + tb->text_pos.y, color, tb->text_scale);
 				}
 				else if (tb->text_flags & TD_WINTEXT_Right)
 				{
-					Vector2 text_size;
-					tdVkSpriteBatchGetTextSize(&gui.sprite_batch, tb->text, 0, text_size);
-					tdVkDrawTextDF(gui.sprite_batch, tb->text, 0, world_pos.x - tb->text_pos.x + tb->size.x - text_size.x * tb->text_scale, world_pos.y + tb->text_pos.y, color, tb->text_scale);
+					Vector2 text_size = tdVkSpriteBatchGetTextSize(&gui.sprite_batch, tb->text, 0, tb->text_scale);
+					tdVkDrawTextDF(&gui.sprite_batch, tb->text, 0, world_pos.x - tb->text_pos.x + tb->size.x - text_size.x, world_pos.y + tb->text_pos.y, color, tb->text_scale);
 				}
 				else
 				{
-					tdVkDrawTextDF(gui.sprite_batch, tb->text, 0, world_pos.x + tb->text_pos.x, world_pos.y + tb->text_pos.y, color, tb->text_scale);
+					tdVkDrawTextDF(&gui.sprite_batch, tb->text, 0, world_pos.x + tb->text_pos.x, world_pos.y + tb->text_pos.y, color, tb->text_scale);
 				}
 			}
 		} break;
@@ -428,10 +440,9 @@ void tdDrawToolTip(TdGui& gui)
 	TdTextBox *tooltip = gui.win_hovered->tooltip;
 	tooltip->flags |= TD_WINFLAG_EnabledVisible;
 	tooltip->text = gui.win_hovered->tooltip_text;
-	Vector2 text_size;
-	tdVkSpriteBatchGetTextSize(&gui.sprite_batch, tooltip->text, 0, text_size);
-	tooltip->size.x = text_size.x * tooltip->text_scale + tooltip->text_pos.x * 2 + 2;
-	tooltip->size.y = text_size.y * tooltip->text_scale + tooltip->text_pos.y * 2 + 4;
+	Vector2 text_size = tdVkSpriteBatchGetTextSize(&gui.sprite_batch, tooltip->text, 0, tooltip->text_scale);
+	tooltip->size.x = text_size.x + tooltip->text_pos.x * 2 + 2;
+	tooltip->size.y = text_size.y + tooltip->text_pos.y * 2 + 4;
 	TdPoint2 mpos = gui.mouse_pos_for_present;
 	tooltip->pos.x = tdClamp(mpos.x - tooltip->size.x / 2, 0, gui.viewport.w - tooltip->size.x);
 	tooltip->pos.y = tdClamp(mpos.y - 8 - tooltip->size.y, 0, gui.viewport.h - tooltip->size.y);
@@ -459,25 +470,27 @@ void tdGuiPresent(TdGui& gui, VkCommandBuffer command_buffer)
 		tdDrawToolTip(gui);
 	}
 
-	tdVkSpriteBatchPresent(gui.sprite_batch, command_buffer);
+	tdVkSpriteBatchPresent(&gui.sprite_batch, command_buffer);
 }
 
-void tdGuiInit(TdGui& gui, TdMemoryArena& mem, TdVkInstance& vulkan)
+void tdGuiInit(TdVkInstance* vulkan, TdGui* gui, TdMemoryArena& mem)
 {
-	gui.mem = &mem;
-	gui.vulkan = &vulkan;
-	tdArrayInit(gui.windows, 100);
-	gui.viewport.x = 0;
-	gui.viewport.y = 0;
-	gui.viewport.w = vulkan.surface_width;
-	gui.viewport.h = vulkan.surface_height;
-	tdVkSpriteBatchInit(gui.sprite_batch, vulkan);
+	assert(vulkan);
+	assert(gui);
+	gui->mem = &mem;
+	gui->vulkan = vulkan;
+	tdArrayInit(gui->windows, 100);
+	gui->viewport.x = 0;
+	gui->viewport.y = 0;
+	gui->viewport.w = vulkan->surface_width;
+	gui->viewport.h = vulkan->surface_height;
+	tdVkSpriteBatchInit(vulkan, &gui->sprite_batch);
 
-	gui.cursors[0] = LoadCursor(NULL, IDC_ARROW);
-	gui.cursors[1] = LoadCursor(NULL, IDC_SIZEWE);
-	gui.cursors[2] = LoadCursor(NULL, IDC_SIZENS);
-	//gui.cursors[3] = LoadCursor(NULL, IDC_SIZEWE);
-	//gui.cursors[4] = LoadCursor(NULL, IDC_SIZEWE);
+	gui->cursors[0] = LoadCursor(NULL, IDC_ARROW);
+	gui->cursors[1] = LoadCursor(NULL, IDC_SIZEWE);
+	gui->cursors[2] = LoadCursor(NULL, IDC_SIZENS);
+	//gui->cursors[3] = LoadCursor(NULL, IDC_SIZEWE);
+	//gui->cursors[4] = LoadCursor(NULL, IDC_SIZEWE);
 }
 
 }

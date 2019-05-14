@@ -100,7 +100,7 @@ void tdVkClearLines(TdLineRenderer& renderer, uint32 flags)
 
 VkResult UpdateStorageCPU(TdLineRenderer& renderer, VkCommandBuffer& command_buffer, TdArray<TdLineRenderer::VertexLine>& vertices, TdLineRenderer::LineStorage& storage)
 {
-	TdVkInstance& vulkan = *renderer.vulkan;
+	TdVkInstance* vulkan = renderer.vulkan;
 	if (storage.vb.count)
 	{
 		tdVkFreeResource(vulkan, storage.vb.buffer, storage.vb.gpu_mem, "LineRenderer::UpdateStorageCPU");
@@ -120,14 +120,14 @@ VkResult UpdateStorageCPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 	vb_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	vb_info.size = vb_size;
 	vb_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	err = vkCreateBuffer(vulkan.device, &vb_info, NULL, &storage.vb.buffer);
+	err = vkCreateBuffer(vulkan->device, &vb_info, NULL, &storage.vb.buffer);
 	if (err)
 	{
 		tdDisplayError("vkCreateBuffer", err);
 		return err;
 	}
 
-	vkGetBufferMemoryRequirements(vulkan.device, storage.vb.buffer, &mem_reqs);
+	vkGetBufferMemoryRequirements(vulkan->device, storage.vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
 	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
@@ -136,7 +136,7 @@ VkResult UpdateStorageCPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 		return err;
 	}
 
-	err = vkAllocateMemory(vulkan.device, &mem_alloc, NULL, &storage.vb.gpu_mem);
+	err = vkAllocateMemory(vulkan->device, &mem_alloc, NULL, &storage.vb.gpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkAllocateMemory", err);
@@ -144,7 +144,7 @@ VkResult UpdateStorageCPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 	}
 
 	void *cpu_mem;
-	err = vkMapMemory(vulkan.device, storage.vb.gpu_mem, 0, mem_alloc.allocationSize, 0, &cpu_mem);
+	err = vkMapMemory(vulkan->device, storage.vb.gpu_mem, 0, mem_alloc.allocationSize, 0, &cpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkMapMemory", err);
@@ -152,9 +152,9 @@ VkResult UpdateStorageCPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 	}
 
 	memcpy(cpu_mem, vertices.ptr, vb_size);
-	vkUnmapMemory(vulkan.device, storage.vb.gpu_mem);
+	vkUnmapMemory(vulkan->device, storage.vb.gpu_mem);
 
-	err = vkBindBufferMemory(vulkan.device, storage.vb.buffer, storage.vb.gpu_mem, 0);
+	err = vkBindBufferMemory(vulkan->device, storage.vb.buffer, storage.vb.gpu_mem, 0);
 	if (err)
 	{
 		tdDisplayError("vkBindBufferMemory", err);
@@ -166,7 +166,7 @@ VkResult UpdateStorageCPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 
 VkResult UpdateStorageGPU(TdLineRenderer& renderer, VkCommandBuffer& command_buffer, TdArray<TdLineRenderer::VertexLine>& vertices, TdLineRenderer::LineStorage& storage)
 {
-	TdVkInstance& vulkan = *renderer.vulkan;
+	TdVkInstance* vulkan = renderer.vulkan;
 	if (storage.vb.count)
 	{
 		tdVkFreeResource(vulkan, storage.vb.buffer, storage.vb.gpu_mem, "LineRenderer::UpdateStorageGPU");
@@ -187,14 +187,14 @@ VkResult UpdateStorageGPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 	vb_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	vb_info.size = vb_size;
 	vb_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	err = vkCreateBuffer(vulkan.device, &vb_info, NULL, &stage_vb.buffer);
+	err = vkCreateBuffer(vulkan->device, &vb_info, NULL, &stage_vb.buffer);
 	if (err)
 	{
 		tdDisplayError("vkCreateBuffer", err);
 		return err;
 	}
 
-	vkGetBufferMemoryRequirements(vulkan.device, stage_vb.buffer, &mem_reqs);
+	vkGetBufferMemoryRequirements(vulkan->device, stage_vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
 	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
@@ -203,7 +203,7 @@ VkResult UpdateStorageGPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 		return err;
 	}
 
-	err = vkAllocateMemory(vulkan.device, &mem_alloc, NULL, &stage_vb.gpu_mem);
+	err = vkAllocateMemory(vulkan->device, &mem_alloc, NULL, &stage_vb.gpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkAllocateMemory", err);
@@ -211,7 +211,7 @@ VkResult UpdateStorageGPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 	}
 
 	void *cpu_mem;
-	err = vkMapMemory(vulkan.device, stage_vb.gpu_mem, 0, mem_alloc.allocationSize, 0, &cpu_mem);
+	err = vkMapMemory(vulkan->device, stage_vb.gpu_mem, 0, mem_alloc.allocationSize, 0, &cpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkMapMemory", err);
@@ -219,9 +219,9 @@ VkResult UpdateStorageGPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 	}
 
 	memcpy(cpu_mem, vertices.ptr, vb_size);
-	vkUnmapMemory(vulkan.device, stage_vb.gpu_mem);
+	vkUnmapMemory(vulkan->device, stage_vb.gpu_mem);
 
-	err = vkBindBufferMemory(vulkan.device, stage_vb.buffer, stage_vb.gpu_mem, 0);
+	err = vkBindBufferMemory(vulkan->device, stage_vb.buffer, stage_vb.gpu_mem, 0);
 	if (err)
 	{
 		tdDisplayError("vkBindBufferMemory", err);
@@ -230,14 +230,14 @@ VkResult UpdateStorageGPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 
 	// Create the destination buffer with device only visibility
 	vb_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	err = vkCreateBuffer(vulkan.device, &vb_info, NULL, &storage.vb.buffer);
+	err = vkCreateBuffer(vulkan->device, &vb_info, NULL, &storage.vb.buffer);
 	if (err)
 	{
 		tdDisplayError("vkCreateBuffer", err);
 		return err;
 	}
 
-	vkGetBufferMemoryRequirements(vulkan.device, storage.vb.buffer, &mem_reqs);
+	vkGetBufferMemoryRequirements(vulkan->device, storage.vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
 	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
 	{
@@ -246,14 +246,14 @@ VkResult UpdateStorageGPU(TdLineRenderer& renderer, VkCommandBuffer& command_buf
 		return err;
 	}
 
-	err = vkAllocateMemory(vulkan.device, &mem_alloc, NULL, &storage.vb.gpu_mem);
+	err = vkAllocateMemory(vulkan->device, &mem_alloc, NULL, &storage.vb.gpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkAllocateMemory", err);
 		return err;
 	}
 
-	err = vkBindBufferMemory(vulkan.device, storage.vb.buffer, storage.vb.gpu_mem, 0);
+	err = vkBindBufferMemory(vulkan->device, storage.vb.buffer, storage.vb.gpu_mem, 0);
 	if (err)
 	{
 		tdDisplayError("vkBindBufferMemory", err);
@@ -321,7 +321,8 @@ void tdVkLineRendererPresent(TdLineRenderer& renderer, VkCommandBuffer command_b
 		renderer.ubo_cpu.view_proj = view_proj;
 		renderer.ubo_cpu.cam_pos = cam_pos;
 		renderer.ubo_cpu.far_clip = far_clip;
-		tdVkUpdateMappableBuffer(renderer.vulkan->device, renderer.ubo, 0, sizeof(renderer.ubo_cpu), 0, &renderer.ubo_cpu);
+		renderer.ubo.cpu_mem = &renderer.ubo_cpu;
+		tdVkUpdateMappableBuffer(renderer.vulkan->device, renderer.ubo, 0, sizeof(renderer.ubo_cpu), 0);
 
 		VkDeviceSize offsets[1] = { 0 };
 
@@ -376,7 +377,7 @@ VkResult tdVkLoadContent(TdLineRenderer& renderer, TdVkInstance& vulkan, uint32 
 	mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	mem_alloc.allocationSize = mem_reqs.size;
 
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -498,8 +499,8 @@ VkResult tdVkLoadContent(TdLineRenderer& renderer, TdVkInstance& vulkan, uint32 
 	multisample_state.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 	VkPipelineShaderStageCreateInfo shader_stages[2];
-	shader_stages[0] = tdVkLoadShader(vulkan, "TdLineRenderer.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-	shader_stages[1] = tdVkLoadShader(vulkan, "TdLineRenderer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+	shader_stages[0] = tdVkLoadShader(&vulkan, "TdLineRenderer.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	shader_stages[1] = tdVkLoadShader(&vulkan, "TdLineRenderer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 	renderer.shader_modules.Add(shader_stages[0].module);
 	renderer.shader_modules.Add(shader_stages[1].module);
 

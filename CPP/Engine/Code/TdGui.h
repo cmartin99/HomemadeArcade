@@ -105,7 +105,9 @@ struct TdGui
 TdRect tdGetWindowRect(const TdWindow&);
 TdRect tdGetClientRect(const TdWindow&);
 void tdAddWindow(TdGui&, TdWindow* parent, TdWindow&);
+void tdAddWindow(TdGui*, TdWindow* parent, TdWindow*);
 void tdFreeWindow(TdGui&, TdWindow&);
+void tdFreeWindow(TdGui*, TdWindow*);
 ALWAYS_INLINE void tdWinSetFlags(TdWindow* win, uint16 flags) { win->flags = flags; }
 ALWAYS_INLINE void tdWinAddFlags(TdWindow& win, uint16 flags) {	win.flags |= flags; }
 ALWAYS_INLINE void tdWinAddFlags(TdWindow* win, uint16 flags) {	win->flags |= flags; }
@@ -116,9 +118,12 @@ ALWAYS_INLINE void tdWinSetTextFlags(TdTextBox* win, uint16 flags) { win->text_f
 ALWAYS_INLINE void tdWinEnabled(TdWindow* win, bool is_enabled = true) { if (is_enabled) tdWinAddFlags(win, TD_WINFLAG_Enabled); else tdWinClearFlags(win, TD_WINFLAG_Enabled); }
 ALWAYS_INLINE bool tdWinIsEnabled(const TdWindow& win) { return (win.flags & TD_WINFLAG_Enabled) > 0; }
 ALWAYS_INLINE bool tdWinIsEnabled(const TdWindow* win) { return (win->flags & TD_WINFLAG_Enabled) > 0; }
-ALWAYS_INLINE void tdWinVisible(TdWindow* win, bool is_visible = true) { if (is_visible) tdWinAddFlags(win, TD_WINFLAG_Visible); else tdWinClearFlags(win, TD_WINFLAG_Visible); }
 ALWAYS_INLINE bool tdWinIsVisible(const TdWindow& win) { return (win.flags & TD_WINFLAG_Visible) > 0; }
 ALWAYS_INLINE bool tdWinIsVisible(const TdWindow* win) { return (win->flags & TD_WINFLAG_Visible) > 0; }
+ALWAYS_INLINE void tdWinVisible(TdWindow& win, bool is_visible = true) { if (is_visible) tdWinAddFlags(win, TD_WINFLAG_Visible); else tdWinClearFlags(win, TD_WINFLAG_Visible); }
+ALWAYS_INLINE void tdWinVisible(TdWindow* win, bool is_visible = true) { if (is_visible) tdWinAddFlags(win, TD_WINFLAG_Visible); else tdWinClearFlags(win, TD_WINFLAG_Visible); }
+ALWAYS_INLINE void tdWinToggleVisible(TdWindow& win) { if (tdWinIsVisible(win)) tdWinClearFlags(win, TD_WINFLAG_Visible); else tdWinAddFlags(win, TD_WINFLAG_Visible); }
+ALWAYS_INLINE void tdWinToggleVisible(TdWindow* win) { if (tdWinIsVisible(win)) tdWinClearFlags(win, TD_WINFLAG_Visible); else tdWinAddFlags(win, TD_WINFLAG_Visible); }
 void tdWinAlwaysTop(TdGui & gui, TdWindow & win, bool always_top = true);
 ALWAYS_INLINE void tdWinAlwaysTop(TdGui & gui, TdWindow * win, bool always_top = true) { assert(win); tdWinAlwaysTop(gui, *win, always_top); }
 ALWAYS_INLINE TdWindow* tdWinGetChild(TdWindow& win, uint32 i)
@@ -138,7 +143,7 @@ TdPoint2 tdWinWorldPos(const TdWindow *);
 // inline void tdGuiSetMousePos(TdGui& gui, Vector2 pos) { tdGuiSetMousePos(gui, pos.x, pos.y); }
 // inline bool tdIsMouseMoved(TdGui& gui) { return gui.mouse_vel != 0.0f; }
 // void tdGuiCenterMouse(TdGui&);
-void tdGuiInit(TdGui &, TdMemoryArena &, TdVkInstance &);
+void tdGuiInit(TdVkInstance*, TdGui*, TdMemoryArena &);
 void tdGuiUpdate(TdGui &, TdInputState &);
 void tdGuiPresent(TdGui &, VkCommandBuffer);
 }

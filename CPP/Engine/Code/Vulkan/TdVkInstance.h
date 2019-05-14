@@ -8,8 +8,10 @@ namespace eng {
 struct TdVkBuffer
 {
 	uint32 count;
+	uint32 data_size;
 	VkBuffer buffer;
 	VkDeviceMemory gpu_mem;
+	void* cpu_mem;
 	const char* name;
 };
 
@@ -35,7 +37,7 @@ struct TdVkInstance
 	VkPhysicalDeviceProperties device_properties;
 	VkPhysicalDeviceMemoryProperties device_memory_properties;
 	VkQueue queue;
-	VkQueue queue2;
+	//VkQueue queue2;
 	VkFormat depth_format;
 	VkCommandPool command_pool;
 	VkCommandBuffer setup_command_buffer = VK_NULL_HANDLE;
@@ -74,22 +76,29 @@ struct TdVkInstance
 	PFN_vkQueuePresentKHR fpQueuePresentKHR;
 };
 
-VkEvent tdVkCreateEvent(TdVkInstance&);
-VkFence tdVkCreateFence(TdVkInstance&, VkFenceCreateFlags);
-VkResult tdVkWaitForFence(TdVkInstance&, VkFence);
-VkResult tdVkWaitForFrameFence(TdVkInstance&);
-void tdVkBindIndexBufferTri(TdVkInstance&, VkCommandBuffer, uint32 index_count);
-void tdVkBindIndexBufferLine(TdVkInstance&, VkCommandBuffer, uint32 index_count);
-VkResult tdVkUpdateMappableBuffer(VkCommandBuffer, TdVkBuffer, VkDeviceSize offset, VkDeviceSize size, void* cpu_buffer);
-VkResult tdVkUpdateMappableBuffer(VkDevice, TdVkBuffer, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void* cpu_buffer);
-VkBool32 tdVkGetMemoryType(TdVkInstance&, uint32 type_bits, VkFlags, uint32* type_index);
+void tdVkBindAndMapBuffer(TdVkInstance*, TdVkBuffer&, uint32 stride, uint32 count);
+void tdVkAllocateBuffer(TdVkInstance *, TdVkBuffer &buffer, uint32 stride, uint32 count, VkBufferUsageFlagBits usage);
+ALWAYS_INLINE void tdVkAllocateBindAndMapBuffer(TdVkInstance *vulkan, TdVkBuffer &buffer, uint32 stride, uint32 count, VkBufferUsageFlagBits usage) { tdVkAllocateBuffer(vulkan, buffer, stride, count, usage); tdVkBindAndMapBuffer(vulkan, buffer, stride, count); }
+ALWAYS_INLINE void tdVkAllocateVertexBuffer(TdVkInstance* vulkan, TdVkBuffer& buffer, uint32 stride, uint32 count) { tdVkAllocateBuffer(vulkan, buffer, stride, count, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT); }
+ALWAYS_INLINE void tdVkAllocateIndexBuffer(TdVkInstance* vulkan, TdVkBuffer& buffer, uint32 count) { tdVkAllocateBuffer(vulkan, buffer, sizeof(uint32), count, VK_BUFFER_USAGE_INDEX_BUFFER_BIT); }
+ALWAYS_INLINE void tdVkAllocateBindAndMapVertexBuffer(TdVkInstance *vulkan, TdVkBuffer &buffer, uint32 stride, uint32 count) { tdVkAllocateBindAndMapBuffer(vulkan, buffer, stride, count, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT); tdVkBindAndMapBuffer(vulkan, buffer, stride, count); }
+ALWAYS_INLINE void tdVkAllocateBindAndMapIndexBuffer(TdVkInstance *vulkan, TdVkBuffer &buffer, uint32 count) { tdVkAllocateBindAndMapBuffer(vulkan, buffer, sizeof(uint32), count, VK_BUFFER_USAGE_INDEX_BUFFER_BIT); tdVkBindAndMapBuffer(vulkan, buffer, sizeof(uint32), count); }
+VkEvent tdVkCreateEvent(TdVkInstance*);
+VkFence tdVkCreateFence(TdVkInstance*, VkFenceCreateFlags);
+VkResult tdVkWaitForFence(TdVkInstance*, VkFence);
+VkResult tdVkWaitForFrameFence(TdVkInstance*);
+void tdVkBindIndexBufferTri(TdVkInstance*, VkCommandBuffer, uint32 index_count);
+void tdVkBindIndexBufferLine(TdVkInstance*, VkCommandBuffer, uint32 index_count);
+VkResult tdVkUpdateMappableBuffer(VkCommandBuffer, TdVkBuffer, VkDeviceSize offset, VkDeviceSize size);
+VkResult tdVkUpdateMappableBuffer(VkDevice, TdVkBuffer, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags);
+VkBool32 tdVkGetMemoryType(TdVkInstance*, uint32 type_bits, VkFlags, uint32 * type_index);
 void tdVkSetImageLayout(VkCommandBuffer, VkImage, VkImageAspectFlags, VkImageLayout old_layout, VkImageLayout new_layout, VkImageSubresourceRange);
-void tdVkFreeResource(TdVkInstance&, VkBuffer, VkDeviceMemory, const char* name);
-void tdVkFreeResource(TdVkInstance&, TdVkBuffer, const char* name);
-void tdVkUpdateFreeResources(TdVkInstance&);
-void tdVkFreeCommandBuffer(TdVkInstance&, VkQueue, VkCommandBuffer);
-void tdVkUpdateFreeCommandBuffers(TdVkInstance&, VkQueue);
-VkPipelineShaderStageCreateInfo tdVkLoadShader(TdVkInstance&, const char* file_name, VkShaderStageFlagBits stage);
-VkResult tdVkInitVulkan(TdVkInstance&, const char* name, bool enable_validation, HINSTANCE hinst, HWND hwnd);
+void tdVkFreeResource(TdVkInstance*, VkBuffer, VkDeviceMemory, const char *name);
+void tdVkFreeResource(TdVkInstance*, TdVkBuffer, const char *name);
+void tdVkUpdateFreeResources(TdVkInstance*);
+void tdVkFreeCommandBuffer(TdVkInstance*, VkQueue, VkCommandBuffer);
+void tdVkUpdateFreeCommandBuffers(TdVkInstance*, VkQueue);
+VkPipelineShaderStageCreateInfo tdVkLoadShader(TdVkInstance*, const char *file_name, VkShaderStageFlagBits stage);
+VkResult tdVkInitVulkan(TdVkInstance*, const char *name, bool enable_validation, HINSTANCE hinst, HWND hwnd);
 
 }

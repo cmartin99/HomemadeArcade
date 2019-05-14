@@ -15,9 +15,13 @@ void tdRandomSeed(uint64 initstate, uint64 initseq);
 void tdRandomSeed(TdPcg32Random* rng, uint64 initstate, uint64 initseq);
 int32 tdRandomNext(void);
 int32 tdRandomNext(TdPcg32Random* rng);
+inline int32 tdRandomNext(TdPcg32Random& rng) { return  tdRandomNext(&rng); }
 int32 tdRandomNext(int32 bound);
 int32 tdRandomNext(TdPcg32Random* rng, int32 bound);
+inline int32 tdRandomNext(TdPcg32Random& rng, int32 bound) { return tdRandomNext(&rng, bound); }
 inline int32 tdRandomNext(TdPcg32Random* rng, int32 min_bound, int32 max_bound) { return tdRandomNext(rng, max_bound - min_bound + 1) + min_bound; }
-inline double tdRandomNextDouble(TdPcg32Random* rng) { return tdRandomNext(rng, UINT_MAX) / (double)UINT_MAX; }
+inline int32 tdRandomNext(TdPcg32Random& rng, int32 min_bound, int32 max_bound) { return tdRandomNext(&rng, max_bound - min_bound + 1) + min_bound; }
+inline double tdRandomNextDouble(TdPcg32Random* rng) { return tdRandomNext(rng, INT_MAX) / (double)INT_MAX; }
+inline double tdRandomNextDouble(TdPcg32Random& rng) { return tdRandomNext(&rng, INT_MAX) / (double)INT_MAX; }
 
 }
