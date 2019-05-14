@@ -29,28 +29,10 @@ Gamer* GamerNew(Sim* sim)
 	return gamer;
 }
 
-Vector2 FindPlayerCellSpawnPos(Sim* sim)
-{
-	Mass* shot = sim->shots.ptr + sim->shots.count - 1;
-	for (int i = sim->shots.count - 1; i >= 0; --i, --shot)
-	{
-		if (shot->enabled && shot->vel.x == 0 && shot->vel.y == 0)
-		{
-			shot->enabled = false;
-			tdArrayAdd(sim->shots_changed, (uint16)i);
-			if (i == sim->shots.count - 1) --sim->shots.count;
-			return shot->pos;
-		}
-	}
-
-	return RandomWorldPosition(sim, EntityRadius(sim->max_mass_per_cell));
-}
-
 Player* PlayerNew(Sim* sim, Gamer* gamer, Player* player)
 {
 	if (!player)
 	{
-		if (sim->player_count == sim->players.cap) return nullptr;
 		if (sim->players.count == sim->players.cap)
 		{
 			for (int i = 0; i < sim->players.count; ++i)

@@ -118,18 +118,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 {
 	using namespace NewGame;
 
-	if (__argc < 3)
-	{
-		tdDisplayError("Must provide command line with ip_address and port", 0);
-      	return 0;
-   	}
-   	strcpy(ip_address, __argv[1]);
-   	port = atoi(__argv[2]);
-
-	HANDLE mainThread = GetCurrentThread();
-	SetThreadAffinityMask(mainThread, 1);
-	CloseHandle(mainThread);
-
 	hinst = hInstance;
 	app_activated = false;
 	SetCursor(LoadCursor(NULL, IDC_ARROW));
@@ -142,7 +130,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	RegisterClass(&win_class);
 
-	int width = 520, height = 720;
+	int width = 1280, height = 720;
 	int screen_width = GetSystemMetrics(SM_CXSCREEN);
 	int screen_height = GetSystemMetrics(SM_CYSCREEN);
 	bool fullscreen = false;
@@ -160,9 +148,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	}
 	else
 	{
-		rect.left = 16;		//(long)screen_width / 2 - width / 2;
+		rect.left = (long)screen_width / 2 - width / 2;
 		rect.right = (long)width;
-		rect.top = 50;		//(long)screen_height / 2 - height / 2;
+		rect.top = (long)screen_height / 2 - height / 2;
 		rect.bottom = (long)height;
 	}
 
@@ -211,7 +199,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	LARGE_INTEGER perf_freq_temp;
 	QueryPerformanceFrequency(&perf_freq_temp);
 	uint64 perf_freq = perf_freq_temp.QuadPart;
-
 	LARGE_INTEGER last_perf_counter, perf_counter;
 	QueryPerformanceCounter(&last_perf_counter);
 
@@ -224,29 +211,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	ShowWindow(win, SW_SHOW);
 	SetForegroundWindow(win);
 	auto r = SetFocus(win);
-	POINT pt; pt.x=800; pt.y=450;
-	ClientToScreen(win, &pt);
-	//SetCursorPos(pt.x, pt.y);
-
-	// if (fullscreen)
-	// {
-	// 	DEVMODE dmScreenSettings;
-	// 	memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
-	// 	dmScreenSettings.dmSize = sizeof(dmScreenSettings);
-	// 	dmScreenSettings.dmPelsWidth = screen_width;
-	// 	dmScreenSettings.dmPelsHeight = screen_height;
-	// 	dmScreenSettings.dmBitsPerPel = 32;
-	// 	dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-	// 	ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN);
-	// }
 
 #if _PROFILE_
 	TdTimedBlockCounter frame_counter = { 1, 0, 0, 0, 0, 0, 0, "frame" };
 	tdArrayAdd(timed_blocks, frame_counter);
 	DWORD64 start_cycles = __rdtsc();
 #endif
-	auto app_state = GetAppState();
 
+	auto app_state = GetAppState();
 	while (running)
 	{
 		BOOL result;

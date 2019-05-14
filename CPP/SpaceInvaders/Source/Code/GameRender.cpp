@@ -140,105 +140,11 @@ void RenderDebug(const Renderer* renderer)
 	last_debug_y = y;
 }
 
-void RenderLogErrors(Renderer* renderer)
-{/*
-	auto app_state = GetAppState();
-	TdSpriteBatch* sprite_batch = renderer->sprite_batch;
-
-	int x = 3, y = last_debug_y + 4;
-	for (int i = app_state->curr_log_error - 1; i >= 0; --i)
-	{
-		char *s = app_state->log_error_text + i * app_state->max_log_error_text_len;
-		if (s[0] != '\0')
-		{
-			tdVkDrawTextDF(sprite_batch, s, 0, x, y, Colors::White, 1.f, 0.6f);
-			y += 18;
-		}
-	}
-
-	for (int i = app_state->max_log_errors - 1; i >= app_state->curr_log_error; --i)
-	{
-		char *s = app_state->log_error_text + i * app_state->max_log_error_text_len;
-		if (s[0] != '\0')
-		{
-			tdVkDrawTextDF(sprite_batch, s, 0, x, y, Colors::White, 1.f, 0.6f);
-			y += 18;
-		}
-	}
-
-	last_debug_y = y;	*/
-}
-
-void RenderServer(Renderer* renderer)
+void RenderSim(Renderer* renderer)
 {
-	TIMED_BLOCK(RenderServer);
+	TIMED_BLOCK(RenderSim);
 	auto app_state = GetAppState();
 	TdSpriteBatch* sprite_batch = renderer->sprite_batch;
-	TdRect rect = { 0, renderer->log_offset_y, (int32)renderer->viewport.width, (int32)renderer->viewport.height};
-	float text_depth = 1.f, text_scale = 0.6f;
-
-	int connection_count = 0;
-	int gamer_count = 0, gamer_enabled_count = 0;
-	int map_area = 0, map_radius = 0, player_ratio = 0, agar_ratio = 0, virus_ratio = 0, spawner_ratio = 0;
-	int player_count = 0, player_enabled_count = 0;
-	int player_cell_count = 0, player_enabled_cell_count = 0;
-	int shot_count = 0, shot_enabled_count = 0, shot_cap = 0;
-	int total_mass = 0;
-
-	Sim* sim = &app_state->sim;
-	if (sim->is_active)
-	{
-		map_radius = sim->world_size / 2;
-		map_area = (int)(g_PI * (map_radius * map_radius));
-		connection_count = sim->connections.count;
-		gamer_count = sim->gamers.count;
-		for (int j = 0; j < sim->gamers.count; ++j) {
-			if (sim->gamers[j].gamer_id > 0) ++gamer_enabled_count;
-		}
-		player_count = sim->players.count;
-		player_enabled_count = sim->player_count;
-		player_ratio = sim->player_count ? map_area / sim->player_count : 0;
-		agar_ratio = map_area / sim->agar.cap;
-		virus_ratio = map_area / sim->viruses.cap;
-		spawner_ratio = map_area / sim->spawners.cap;
-		player_cell_count = sim->player_cells.count;
-		for (int j = 0; j < sim->player_cells.count; ++j)
-		{
-			if (sim->player_cells[j].enabled)
-			{
-				++player_enabled_cell_count;
-				total_mass += (int)sim->player_cells[j].mass_target;
-			}
-		}
-		shot_count = sim->shots.count;
-		shot_cap = sim->shots.cap;
-		for (int j = 0; j < sim->shots.count; ++j) {
-			if (sim->shots[j].enabled) ++shot_enabled_count;
-		}
-	}
-
-	sprintf_comma(total_mass, temp_text2);
-
-	int len = sprintf(temp_text, "Sim Active: %s\nSim Paused: %s\nMap Radius/Area: %d/%d\nConnections: %d\nGamers: %d/%d\nPlayers: %d/%d\nCells: %d/%d\nShots: %d/%d/%d\nTotal Mass: %s\nPlayer ratio: %d\nAgar ratio: %d\nVirus ratio: %d\nSpawner ratio: %d\nLargest Packet Size: %d\nHighest Agar Changed Count: %d\nHighest Shots Changed Count: %d",
-		sim ? sim->is_active ? "Yes" : "No" : "No Sim", 
-		sim ? sim->is_paused ? "Yes" : "No" : "", 
-		map_radius, map_area,
-		connection_count, 
-		gamer_enabled_count, gamer_count, 
-		player_enabled_count, player_count,
-		player_enabled_cell_count, player_cell_count,
-		shot_enabled_count, shot_count, shot_cap,
-		temp_text2,
-		player_ratio,
-		agar_ratio,
-		virus_ratio,
-		spawner_ratio,
-		app_state->packet_size_largest,
-		sim->agar_changed_largest_count,
-		sim->shots_changed_largest_count
-		);
-
-	tdVkDrawTextDF(sprite_batch, temp_text, len, rect.x + 4, rect.y + 4, Colors::White, text_depth, text_scale);
 }
 
 VkResult RenderGame()
@@ -299,7 +205,7 @@ VkResult RenderGame()
 	// Render Frame
 
 	app_state->debug_data.draw_primitive_count = 0;
-	RenderServer(renderer);
+	RenderSim(renderer);
 	ImGuiUpdate(renderer);
 	last_debug_y = 0;
 	if (app_state->debug_data.debug_verbosity > 0) RenderDebug(renderer);

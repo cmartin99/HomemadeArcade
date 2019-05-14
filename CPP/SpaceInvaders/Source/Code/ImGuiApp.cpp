@@ -4,102 +4,19 @@ struct Gui
 	enum Item
 	{
 		None,
-		StartSim,
-		EndSim,
-		PauseSim,
-		ResumeSim,
-		SlowSimSpeed,
-		ResetSimSpeed,
-		FastSimSpeed,
-		AddBot1,
-		RemoveBot1,
-		AddBot10,
-		RemoveBot10,
-		AddBot100,
-		RemoveBot100,
-		LessRndLatency,
-		ResetRndLatency,
-		MoreRndLatency,
-		DecWorldSize,
-		ResetWorldSize,
-		IncWorldSize,
-		Debug,
-		CloseServer,
 	};
 };
 
 const char* gui_text[] = {
 	nullptr,
-	"+",
-	"-",
-	"P",
-	"R",
-	"<<",
-	"",
-	">>",
-	"B+",
-	"B-",
-	"B10+",
-	"B10-",
-	"B100+",
-	"B100-",
-	"L-",
-	"",
-	"L+",
-	"W-",
-	"",
-	"W+",
-	"D",
-	"X",
 };
 
 const char* gui_tip_text[] = {
 	nullptr, //None,
-	"Start Sim",
-	"End Sim",
-	"Pause Sim",
-	"Resume Sim",
-	"Slow Sim down",
-	"Reset Sim speed",
-	"Speed Sim up",
-	"Add 1 Bot",
-	"Remove 1 Bot",
-	"Add 10 Bots",
-	"Remove 10 Bots",
-	"Add 100 Bots",
-	"Remove 100 Bots",
-	"Reduce Random (Debug) Latency by 20 ms",
-	"Reset Latency to none",
-	"Increase Random (Debug) Latency by 20 ms",
-	"Reduce World Size by 16",
-	"Reset World Size to Default",
-	"Incease World Size by 16",
-	"Toggle Debug Verbosity",
-	"Close Server"
 };
 
 const char* GuiText(TdImGuiContext context)
 { 
-	if (context.data)
-	{
-		Sim* sim = (Sim*)context.data;
-
-		switch (context.id)
-		{
-			case Gui::ResetSimSpeed:
-				sprintf(temp_text, ">%.2f<", sim->sim_speed);
-				return temp_text;
-
-			case Gui::ResetRndLatency:
-				sprintf(temp_text, ">%d<", sim->debug_rnd_latency);
-				return temp_text;
-
-			case Gui::ResetWorldSize:
-				sprintf(temp_text, ">%d<", sim->world_size);
-				return temp_text;
-		}
-	}
-
 	return gui_text[context.id]; 
 }
 

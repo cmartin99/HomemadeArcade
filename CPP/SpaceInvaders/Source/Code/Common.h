@@ -4,16 +4,12 @@
 #include "vulkan.h"
 #include "TdEngine.h"
 #include "TdRandom.h"
-#include "TdPoint.h"
 #include "DataTypes.h"
 
 namespace NewGame {
 
 extern AppMemory* memory;
 static char temp_text[1000];
-static char temp_text1[1000];
-static char temp_text2[1000];
-static char temp_text3[1000];
 
 template<typename T>
 ALWAYS_INLINE void memclear(T* p) { memset(p, 0, sizeof(T)); }
