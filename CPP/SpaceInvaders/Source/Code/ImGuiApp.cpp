@@ -4,184 +4,124 @@ struct Gui
 	enum Item
 	{
 		None,
+		NewGame,
+		Exit,
+		Debug,
+		ExitToMainMenu,		
 	};
 };
 
 const char* gui_text[] = {
 	nullptr,
+	"New Game",
+	"Exit",
+	"D",
+	"X",
 };
 
 const char* gui_tip_text[] = {
 	nullptr, //None,
+	nullptr, //NewGame,
+	nullptr, //Exit,
+	nullptr, //Debug,
+	nullptr, //ExitToMainMenu,
 };
 
-const char* GuiText(TdImGuiContext context)
-{ 
+const char* GuiText(TdImGuiContext context) 
+{
 	return gui_text[context.id]; 
 }
 
 const char* GuiTipText(TdImGuiContext context)
-{ 
-	return nullptr;//gui_tip_text[context.id]; 
+{
+	return gui_tip_text[context.id]; 
 }
 
-void ImGuiUpdateServer(Renderer* renderer)
+bool IsGuiInteracted(const Gamer* gamer)
 {
-	assert(renderer);
+	assert(gamer);
+	return gamer->gui_interacted || gamer->gui->hot != Gui::None;
+}
+
+bool ImGuiUpdateTitleMenu(Gamer* gamer)
+{
 	auto app_state = GetAppState();
-	Sim* sim = &app_state->sim;
-	TdImGui* gui = renderer->gui;
+	TdImGui *gui = gamer->gui;
+	TdSpriteBatch* sprite_batch = gui->sprite_batch;
+
+	gui->menu_text_scale = 0.9f;
+	int item_count = 2;
+	int bord = 2;
+	TdRect rect = {0, 0, 0, 50};
+	TdRect main_rect = tdRectCenter(gamer->viewport, 400, item_count * (rect.h + 1) + bord * 2 - 1);
+	tdVkDrawBoxO(sprite_batch, main_rect, Colors::Black * 0.9f, bord, Colors::White);
+
+	int ygap = 1;
+	rect = {main_rect.x + bord, main_rect.y + bord, main_rect.w - bord * 2, rect.h};
+
+	if (DoMenuItem(gui, Gui::NewGame, rect))
+	{
+		gamer->screen_mode = sm_Gameplay;
+		return true;
+	}
+	rect.y += rect.h + ygap;
+	if (DoMenuItem(gui, Gui::Exit, rect))
+	{
+		CloseApplication();
+		return true;
+	}
+
+	return false;
+}
+
+bool ImGuiGameplay(Gamer* gamer)
+{
+	auto app_state = GetAppState();
+	TdImGui *gui = gamer->gui;
+
 	gui->button_text_scale = 0.6f;
-	gui->tooltip_text_scale = 0.5f;
-
+	int item_count = 2;
 	TdRect rect;
-	rect.w = 28;
-	rect.x = 4;
-	rect.y = 4 + last_debug_y;
-	rect.h = 28;
+	rect.w = 24;
+	rect.y = 4;
+	rect.x = gamer->viewport.width - rect.w * item_count - item_count * 4;
+	rect.h = 24;
 
-	if (DoButton(gui, Gui::StartSim, rect, !sim->is_active))
-	{
-		SimNew();
-	}
-	rect.x += rect.w + 4;
-	if (sim->is_active)
-	{
-		if (DoButton(gui, Gui::EndSim, rect))
-		{
-			SimEnd();
-			return;
-		}
-		rect.x += rect.w + 4;
-		if (!sim->is_paused)
-		{
-			if (DoButton(gui, Gui::PauseSim, rect))
-			{
-				sim->is_paused = true;
-			}
-		}
-		else
-		{
-			if (DoButton(gui, Gui::ResumeSim, rect))
-			{
-				sim->is_paused = false;
-			}
-		}
-		rect.x += rect.w + 4;
-		rect.w += 6;
-		if (DoButton(gui, Gui::SlowSimSpeed, rect))
-		{
-			sim->sim_speed *= 0.5;
-		}
-		rect.x += rect.w + 4;
-		rect.w += 38;
-		if (DoButton(gui, {Gui::ResetSimSpeed, sim}, rect))
-		{
-			sim->sim_speed = 1;
-		}
-		rect.x += rect.w + 4;
-		rect.w -= 38;
-		if (DoButton(gui, Gui::FastSimSpeed, rect))
-		{
-			sim->sim_speed *= 2.0;
-		}
-		rect.x += rect.w + 4;
-		if (DoButton(gui, Gui::AddBot1, rect))
-		{
-			AddBot(sim);
-		}
-		rect.x += rect.w + 4;
-		if (DoButton(gui, Gui::RemoveBot1, rect))
-		{
-			RemoveBot(sim);
-		}
-		rect.x += rect.w + 4;
-		rect.w += 18;
-		if (DoButton(gui, Gui::AddBot10, rect))
-		{
-			for (int i = 0; i < 10; ++i) AddBot(sim);
-		}
-		rect.x += rect.w + 4;
-		if (DoButton(gui, Gui::RemoveBot10, rect))
-		{
-			for (int i = 0; i < 10; ++i) RemoveBot(sim);
-		}
-		rect.x += rect.w + 4;
-		rect.w += 10;
-		if (DoButton(gui, Gui::AddBot100, rect))
-		{
-			for (int i = 0; i < 100; ++i) AddBot(sim);
-		}
-		rect.x += rect.w + 4;
-
-		rect.x = 4;
-		rect.y += 4 + rect.h;
-
-		if (DoButton(gui, Gui::RemoveBot100, rect))
-		{
-			for (int i = 0; i < 100; ++i) RemoveBot(sim);
-		}
-		rect.x += rect.w + 4;
-		rect.w -= 28;
-		if (DoButton(gui, Gui::LessRndLatency, rect))
-		{
-			sim->debug_rnd_latency -= 20;
-			if (sim->debug_rnd_latency < 0) sim->debug_rnd_latency = 0;
-		}
-		rect.x += rect.w + 4;
-		rect.w += 30;
-		if (DoButton(gui, {Gui::ResetRndLatency, sim}, rect))
-		{
-			sim->debug_rnd_latency = 0;
-		}
-		rect.x += rect.w + 4;
-		rect.w -= 30;
-		if (DoButton(gui, Gui::MoreRndLatency, rect))
-		{
-			sim->debug_rnd_latency += 20;
-		}
-		rect.x += rect.w + 4;
-		if (DoButton(gui, Gui::DecWorldSize, rect))
-		{
-			sim->world_size -= 64;
-		}
-		rect.x += rect.w + 4;
-		rect.w += 50;
-		if (DoButton(gui, {Gui::ResetWorldSize, sim}, rect))
-		{
-			sim->world_size = max(sim->max_world_size, (int)sqrt(sim->player_count * 65000 / g_PI));
-		}
-		rect.x += rect.w + 4;
-		rect.w -= 50;
-		if (DoButton(gui, Gui::IncWorldSize, rect))
-		{
-			sim->world_size += 64;
-		}
-		rect.x += rect.w + 4;
-		rect.w -= 6;
-	}
 	if (DoButton(gui, Gui::Debug, rect))
 	{
 		if (++app_state->debug_data.debug_verbosity > 2)
 			app_state->debug_data.debug_verbosity = 0;
+		return true;
 	}
 	rect.x += rect.w + 4;
-	if (DoButton(gui, Gui::CloseServer, rect))
+	if (DoButton(gui, Gui::ExitToMainMenu, rect))
 	{
-		app_state->exit_app = true;
+		gamer->screen_mode = sm_TitleMenu;
+		return true;
 	}
 
-	renderer->log_offset_y = rect.y + rect.h + 4;	
+	return false;
 }
 
-void ImGuiUpdate(Renderer* renderer)
+void ImGuiUpdate(Gamer* gamer)
 {
-	assert(renderer);
+	assert(gamer);
 	TIMED_BLOCK(ImGuiUpdate);
-	renderer->gui->new_hot = Gui::None;
 
-	ImGuiUpdateServer(renderer);
+	gamer->gui_interacted = false;
+	gamer->gui->new_hot = Gui::None;
 
-	renderer->gui->hot = renderer->gui->new_hot;
-	DoToolTip(renderer->gui);
+	switch (gamer->screen_mode)
+	{
+		case sm_Gameplay:
+			gamer->gui_interacted = ImGuiGameplay(gamer);
+			break;
+
+		case sm_TitleMenu:
+			gamer->gui_interacted = ImGuiUpdateTitleMenu(gamer);
+			break;
+	}
+
+	gamer->gui->hot = gamer->gui->new_hot;
+	DoToolTip(gamer->gui);
 }

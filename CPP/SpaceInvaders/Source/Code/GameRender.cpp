@@ -26,7 +26,7 @@ void SortTimedBlocks(int n)
 	}
 }
 
-void RenderDebugTimedBlocks(const Renderer* renderer, TdArray<TdTimedBlockCounter>& timed_blocks, int* y)
+void RenderDebugTimedBlocks(const Gamer* gamer, TdArray<TdTimedBlockCounter>& timed_blocks, int* y)
 {
 	auto app_state = GetAppState();
 	TdSpriteBatch* sprite_batch = app_state->renderer.sprite_batch;
@@ -54,107 +54,62 @@ void RenderDebugTimedBlocks(const Renderer* renderer, TdArray<TdTimedBlockCounte
 		{
 			len = sprintf(temp_text, "%s: %s", p->name, sprintf_comma(p->total_cycles, commas1));
 		}
-		tdVkDrawBox(sprite_batch, 0, *y, renderer->viewport.width, debug_text_height - 1, debug_bar_col);
+		tdVkDrawBox(sprite_batch, 0, *y, gamer->viewport.width, debug_text_height - 1, debug_bar_col);
 		tdVkDrawTextDF(sprite_batch, temp_text, len, 2, *y, i % 2 == 0 ? Colors::Gray : Colors::White, debug_text_depth, debug_text_scale);
 		*y += debug_text_height;
 	}
 }
 #endif
 
-void RenderDebug(const Renderer* renderer)
+void RenderDebug(const Gamer* gamer)
 {
 	auto app_state = GetAppState();
+	TdVkInstance* vulkan = app_state->renderer.vulkan;
+	TdSpriteBatch* sprite_batch = app_state->renderer.sprite_batch;
 	DebugData* debug_data = &app_state->debug_data;
 	TdInputState* input = &app_state->input;
-	TdVkInstance* vulkan = renderer->vulkan;
-	TdSpriteBatch* sprite_batch = renderer->sprite_batch;
-
+	Sim* sim = &app_state->sim;
 	int y = last_debug_y + 4;
-	bool split = true;
 
-	if (!split)
-	{
-		int len = sprintf(temp_text, "fps: %d | mem (bytes): eng %s (%.1f), perm %s (%.1f), main %s (%.1f), scratch %s (%.1f), total %d | draws: %s",
-				(int)(1 / app_state->seconds),
-				sprintf_comma(eng_arena.used, commas8), (float)eng_arena.used / eng_arena.size * 100.0,
-				sprintf_comma(app_state->perm_arena.used, commas9), (float)app_state->perm_arena.used / app_state->perm_arena.size * 100.0,
-				sprintf_comma(app_state->main_arena.used, commas10), (float)app_state->main_arena.used / app_state->main_arena.size * 100.0,
-				sprintf_comma(app_state->scratch_arena.used, commas11), (float)app_state->scratch_arena.used / app_state->scratch_arena.size * 100.0,
-				eng_arena.used + app_state->perm_arena.used + app_state->main_arena.used + app_state->scratch_arena.used,
-				sprintf_comma(debug_data->draw_primitive_count, commas12)
-				);
+	int len = sprintf(temp_text, "fps: %d | mem (bytes): eng %s (%.1f), perm %s (%.1f), main %s (%.1f), scratch %s (%.1f), total %d | draws: %s",
+			(int)(1 / app_state->seconds),
+			sprintf_comma(eng_arena.used, commas1), (float)eng_arena.used / eng_arena.size * 100.0,
+			sprintf_comma(app_state->perm_arena.used, commas2), (float)app_state->perm_arena.used / app_state->perm_arena.size * 100.0,
+			sprintf_comma(app_state->main_arena.used, commas3), (float)app_state->main_arena.used / app_state->main_arena.size * 100.0,
+			sprintf_comma(app_state->scratch_arena.used, commas4), (float)app_state->scratch_arena.used / app_state->scratch_arena.size * 100.0,
+			eng_arena.used + app_state->perm_arena.used + app_state->main_arena.used + app_state->scratch_arena.used,
+			sprintf_comma(debug_data->draw_primitive_count, commas5)
+			);
 
-		tdVkDrawBox(sprite_batch, 0, y, renderer->viewport.width, debug_text_height - 1, debug_bar_col);
-		tdVkDrawTextDF(sprite_batch, temp_text, len, 2, y, Colors::White, debug_text_depth, debug_text_scale);
-		y += debug_text_height;
-	}
-	else
-	{
-		int len = sprintf(temp_text, "fps: %d | mem (bytes): eng %s (%.1f), perm %s (%.1f), main %s (%.1f), scratch %s (%.1f), total %d | draws: %s",
-				(int)(1 / app_state->seconds),
-				sprintf_comma(eng_arena.used, commas8), (float)eng_arena.used / eng_arena.size * 100.0,
-				sprintf_comma(app_state->perm_arena.used, commas9), (float)app_state->perm_arena.used / app_state->perm_arena.size * 100.0,
-				sprintf_comma(app_state->main_arena.used, commas10), (float)app_state->main_arena.used / app_state->main_arena.size * 100.0,
-				sprintf_comma(app_state->scratch_arena.used, commas11), (float)app_state->scratch_arena.used / app_state->scratch_arena.size * 100.0,
-				eng_arena.used + app_state->perm_arena.used + app_state->main_arena.used + app_state->scratch_arena.used,
-				sprintf_comma(debug_data->draw_primitive_count, commas12)
-				);
-
-		tdVkDrawBox(sprite_batch, 0, y, renderer->viewport.width, debug_text_height - 1, debug_bar_col);
-		tdVkDrawTextDF(sprite_batch, temp_text, len, 2, y, Colors::White, debug_text_depth, debug_text_scale);
-		y += debug_text_height;
-
-/*		len = sprintf(temp_text, "mouse : %d, %d, %.1f, %.1f",
-				app_state->input.mouse.mouse_pos.x,
-				app_state->input.mouse.mouse_pos.y,
-				gamer->player ? gamer->player->mouse_pos.x : 0.f,
-				gamer->player ? gamer->player->mouse_pos.y : 0.f
-				);
-
-		tdVkDrawBox(sprite_batch, 0, y, gamer->viewport.width, debug_text_height - 1, debug_bar_col);
-		tdVkDrawTextDF(sprite_batch, temp_text, len, 2, y, Colors::White, debug_text_depth, debug_text_scale);
-		y += debug_text_height;*/
-
-		len = sprintf(temp_text, "net | connections: %d | bytes sent per sec: %d | bytes recv per sec: %d",
-				0,
-				app_state->bytes_sent_last_second,
-				app_state->bytes_recv_last_second
-				);
-
-		// len = sprintf(temp_text, "net | sent: frame: %d, second: %d | recv: frame: %d, second: %d",
-		// 		app_state->bytes_sent_per_frame,
-		// 		app_state->bytes_sent_last_second,
-		// 		app_state->bytes_recv_per_frame,
-		// 		app_state->bytes_recv_last_second
-		// 		);
-
-		tdVkDrawBox(sprite_batch, 0, y, renderer->viewport.width, debug_text_height - 1, debug_bar_col);
-		tdVkDrawTextDF(sprite_batch, temp_text, len, 2, y, Colors::White, debug_text_depth, debug_text_scale);
-		y += debug_text_height;
-
-	}
+	tdVkDrawBox(sprite_batch, 0, y, gamer->viewport.width, debug_text_height - 1, debug_bar_col);
+	tdVkDrawTextDF(sprite_batch, temp_text, len, 2, y, Colors::White, debug_text_depth, debug_text_scale);
+	y += debug_text_height;
 
 	if (app_state->debug_data.debug_verbosity > 1)
-		RenderDebugTimedBlocks(renderer, timed_blocks, &y);
+		RenderDebugTimedBlocks(gamer, timed_blocks, &y);
 
 	last_debug_y = y;
 }
 
-void RenderSim(Renderer* renderer)
+void RenderSim(const Sim* sim, Gamer* gamer, const TdRect& rect)
 {
 	TIMED_BLOCK(RenderSim);
+	assert(sim);
+	assert(gamer);
 	auto app_state = GetAppState();
-	TdSpriteBatch* sprite_batch = renderer->sprite_batch;
+	TdSpriteBatch* sprite_batch = app_state->renderer.sprite_batch;
+
 }
 
 VkResult RenderGame()
 {
+	TIMED_BLOCK(RenderGame);
 	auto app_state = GetAppState();
-	Renderer* renderer = &app_state->renderer;
-	auto vulkan = renderer->vulkan;
-	assert(vulkan);
+	assert(app_state->renderer.vulkan);
+	auto vulkan = app_state->renderer.vulkan;
 
 	VkResult err;
+	Gamer* gamer = app_state->gamers.ptr;
 
 	err = vulkan->fpAcquireNextImageKHR(vulkan->device, vulkan->swap_chain, UINT64_MAX, vulkan->semaphore_present_complete, (VkFence)NULL, &vulkan->current_frame);
 	if (err)
@@ -165,8 +120,8 @@ VkResult RenderGame()
 
 	//tdVkWaitForFrameFence(vulkan);
 	tdVkUpdateFreeResources(vulkan);
-	uint32 current_frame = vulkan->current_frame;
 
+	uint32 current_frame = vulkan->current_frame;
 	VkCommandBuffer command_buffer = vulkan->frames[current_frame].draw_command_buffer;
 	err = vkResetCommandBuffer(command_buffer, VK_FLAGS_NONE);
 	if (err)
@@ -192,28 +147,41 @@ VkResult RenderGame()
 	VkRenderPassBeginInfo render_pass_begin_info = {};
 	render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	render_pass_begin_info.renderPass = vulkan->render_pass;
-	render_pass_begin_info.renderArea = renderer->scissor_rect;
+	render_pass_begin_info.renderArea = gamer->scissor_rect;
 	render_pass_begin_info.clearValueCount = 2;
 	render_pass_begin_info.pClearValues = clear_values;
 	render_pass_begin_info.framebuffer = vulkan->frames[current_frame].frame_buffer;
 
 	vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-	vkCmdSetViewport(command_buffer, 0, 1, &renderer->viewport);
-	vkCmdSetScissor(command_buffer, 0, 1, &renderer->scissor_rect);
+	vkCmdSetViewport(command_buffer, 0, 1, &gamer->viewport);
+	vkCmdSetScissor(command_buffer, 0, 1, &gamer->scissor_rect);
 
 	{
-	// Render Frame
-
+	TIMED_BLOCK(RenderFrame);
 	app_state->debug_data.draw_primitive_count = 0;
-	RenderSim(renderer);
-	ImGuiUpdate(renderer);
-	last_debug_y = 0;
-	if (app_state->debug_data.debug_verbosity > 0) RenderDebug(renderer);
-	RenderLogErrors(renderer);
+
+	if (app_state->sim.is_active)
+	{
+		TdRect rect = {0, 0, (int32)gamer->viewport.width, (int32)gamer->viewport.height};
+
+		switch (gamer->screen_mode)
+		{			
+			case sm_Gameplay:
+				RenderSim(&app_state->sim, gamer, rect);
+				break;
+		}
+	}
 	}
 
-	tdVkSpriteBatchPresent(renderer->sprite_batch, command_buffer);
-	tdVkSpriteBatchPresent(renderer->gui_sprite_batch, command_buffer);
+	ImGuiUpdate(gamer);
+	last_debug_y = 0;
+	if (app_state->debug_data.debug_verbosity > 0) 
+	{
+		RenderDebug(gamer);
+	}
+
+	tdVkSpriteBatchPresent(app_state->renderer.sprite_batch, command_buffer);
+	tdVkSpriteBatchPresent(app_state->renderer.gui_sprite_batch, command_buffer);
 
 	vkCmdEndRenderPass(command_buffer);
 

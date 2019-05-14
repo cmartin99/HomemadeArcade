@@ -11,14 +11,12 @@ using namespace eng;
 
 bool eng::TdTimedBlock::timed_blocks_paused = false;
 
-namespace NewGame {
+namespace SpaceInvaders {
 
 static AppMemory _memory = {};
 static bool app_activated;
 static bool running;
 static HINSTANCE hinst;
-char ip_address[16];
-uint16 port;
 
 LRESULT CALLBACK Win32_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -34,7 +32,7 @@ LRESULT CALLBACK Win32_WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			exit(1);
 		}
 
-		InitApplication(_memory, vulkan, ip_address, port);
+		InitApplication(_memory, vulkan);
 		app_activated = true;
 	}
 
@@ -116,7 +114,7 @@ const double fps60 = 60.0/1000.0;
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	using namespace NewGame;
+	using namespace SpaceInvaders;
 
 	hinst = hInstance;
 	app_activated = false;
@@ -250,7 +248,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			uint64 delta = perf_counter.QuadPart - last_perf_counter.QuadPart;
 			double delta_secs = (double)delta / perf_freq;
 			eng::total_seconds += delta_secs;
-			if (!app_state->reset_time) app_state->seconds = delta_secs; else app_state->reset_time = false;
+			app_state->seconds = delta_secs;
 			app_state->total_seconds += app_state->seconds;
 			last_perf_counter = perf_counter;
 #if _PROFILE_
@@ -260,7 +258,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 #endif
 			RunOneFrame();
 
-			++app_state->frame_count;
 			if (app_state->exit_app) running = false;
 		}
 		else

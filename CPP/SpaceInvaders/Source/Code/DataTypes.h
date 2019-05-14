@@ -2,19 +2,19 @@
 
 using namespace eng;
 
-namespace NewGame {
+namespace SpaceInvaders {
 
 static char commas1[20];
 static char commas2[20];
 static char commas3[20];
 static char commas4[20];
 static char commas5[20];
+static char commas6[20];
 static int last_debug_y;
 
 struct AppConsts
 {
 	static const int32 save_version = 100000;
-	static const char *save_path;
 };
 
 struct AppMemory
@@ -38,6 +38,12 @@ struct DebugData
 	int32 draw_primitive_count;
 };
 
+enum ScreenMode
+{
+	sm_TitleMenu,
+	sm_Gameplay,
+};
+
 struct Gamer;
 
 struct Player
@@ -48,8 +54,13 @@ struct Player
 
 struct Gamer
 {
-	int16 gamer_id;
+	ScreenMode screen_mode;
+	uint64 gamer_id;
 	Player* player;
+	uint16 gui_interacted : 1;
+	TdImGui* gui;
+	VkViewport viewport;
+	VkRect2D scissor_rect;
 };
 
 struct Renderer
@@ -57,9 +68,6 @@ struct Renderer
 	TdVkInstance* vulkan;
 	TdSpriteBatch* sprite_batch;
 	TdSpriteBatch* gui_sprite_batch;
-	TdImGui* gui;
-	VkViewport viewport;
-	VkRect2D scissor_rect;
 };
 
 struct Sim
@@ -70,7 +78,6 @@ struct Sim
 	double total_seconds;
 	double sim_speed;
 	TdPcg32Random rng;
-	TdArray<Gamer> gamers;
 	TdArray<Player> players;
 };
 
@@ -79,19 +86,17 @@ struct AppState
 	double seconds;
 	double total_seconds;
 	Sim sim;
-	bool exit_app;
+	TdArray<Gamer> gamers;
 	TdPcg32Random rng;
-	uint64 frame_count;
-	TdMemoryArena perm_arena;
-	TdMemoryArena main_arena;
-	TdMemoryArena scratch_arena;
+	bool exit_app;
 	Renderer renderer;
-	DebugData debug_data;
 	TdInputState input;
 	int32 rng_seed, rng_inc;
 	time_t rng_time;
-	bool exit_on_esc;
-	bool reset_time;
+	TdMemoryArena perm_arena;
+	TdMemoryArena main_arena;
+	TdMemoryArena scratch_arena;
+	DebugData debug_data;
 };
 
 }

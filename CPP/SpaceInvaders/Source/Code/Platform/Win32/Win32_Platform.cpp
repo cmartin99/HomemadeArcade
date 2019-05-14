@@ -1,6 +1,6 @@
 #include "Win32_Platform.h"
 
-namespace NewGame {
+namespace SpaceInvaders {
 
 const static float gamepad_thumbleft_deadzone = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
 const static float gamepad_thumbright_deadzone = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
