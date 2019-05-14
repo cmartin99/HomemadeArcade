@@ -59,7 +59,7 @@ VkResult StoreInVB(TdRingRenderer& renderer, VkCommandBuffer& command_buffer)
 
 	vkGetBufferMemoryRequirements(vulkan.device, stage_vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -102,7 +102,7 @@ VkResult StoreInVB(TdRingRenderer& renderer, VkCommandBuffer& command_buffer)
 
 	vkGetBufferMemoryRequirements(vulkan.device, renderer.vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -199,11 +199,12 @@ void tdVkRingRendererPresent(TdRingRenderer& renderer, VkCommandBuffer command_b
 
 		// Update uniform buffers
 		renderer.ubo_cpu.view_proj = view_proj;
-		tdVkUpdateMappableBuffer(renderer.vulkan.device, renderer.ubo, 0, sizeof(renderer.ubo_cpu), 0, &renderer.ubo_cpu);
+		renderer.ubo.cpu_mem = &renderer.ubo_cpu;
+		tdVkUpdateMappableBuffer(renderer.vulkan.device, renderer.ubo, 0, sizeof(renderer.ubo_cpu), 0);
 
 		VkDeviceSize offsets[1] = { 0 };
 		uint32 index_count = renderer.vb.count / 4 * 6;
-		tdVkBindIndexBufferTri(renderer.vulkan, command_buffer, index_count);
+		tdVkBindIndexBufferTri(&renderer.vulkan, command_buffer, index_count);
 		vkCmdBindVertexBuffers(command_buffer, 0, 1, &renderer.vb.buffer, offsets);
 		vkCmdDrawIndexed(command_buffer, index_count, 1, 0, 0, 0);
 #ifdef _PROFILE_
@@ -216,7 +217,7 @@ void tdVkRingRendererClear(TdRingRenderer& renderer)
 {
 	renderer.vertices.Clear();
 	renderer.rings.Clear();
-	if (renderer.vb.count) tdVkFreeResource(renderer.vulkan, renderer.vb, "tdVkRingRendererClear");
+	if (renderer.vb.count) tdVkFreeResource(&renderer.vulkan, renderer.vb, "tdVkRingRendererClear");
 	renderer.vb.count = 0;
 	renderer.vb_dirty = true;
 }
@@ -249,7 +250,7 @@ VkResult tdVkLoadContent(TdRingRenderer& renderer)
 	mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	mem_alloc.allocationSize = mem_reqs.size;
 
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -370,8 +371,8 @@ VkResult tdVkLoadContent(TdRingRenderer& renderer)
 	multisample_state.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 	VkPipelineShaderStageCreateInfo shader_stages[2];
-	shader_stages[0] = tdVkLoadShader(vulkan, "TdRingRenderer.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-	shader_stages[1] = tdVkLoadShader(vulkan, "TdRingRenderer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+	shader_stages[0] = tdVkLoadShader(&vulkan, "TdRingRenderer.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	shader_stages[1] = tdVkLoadShader(&vulkan, "TdRingRenderer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 	renderer.shader_modules.Add(shader_stages[0].module);
 	renderer.shader_modules.Add(shader_stages[1].module);
 

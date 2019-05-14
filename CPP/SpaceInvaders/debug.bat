@@ -1,0 +1,1 @@
+remedybg deploy\Win32_SpaceInvaders.exe

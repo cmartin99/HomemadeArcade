@@ -8,7 +8,6 @@ namespace eng {
 char* tdLastErrorAsString(char* result_buffer, size_t result_buffer_len, bool concatenate)
 {
 	assert(result_buffer);
-	assert(result_buffer_len);
 
 	DWORD errorID = ::GetLastError();
 	if(errorID == 0)
@@ -26,6 +25,7 @@ char* tdLastErrorAsString(char* result_buffer, size_t result_buffer_len, bool co
 	else
 		strncpy(result_buffer, messageBuffer, min(result_buffer_len, size));
 
+	result_buffer[result_buffer_len - 1] = 0;
     LocalFree(messageBuffer);
     return result_buffer;
 }
@@ -205,13 +205,31 @@ _off_t tdGetFileSize(const char *filename)
     return rc == 0 ? stat_buf.st_size : -1;
 }
 
+char* tdReadAllTextFileAndNullTerminate(const char* filename)
+{
+    FILE *fp = fopen(filename, "rb+");
+    if (!fp) return nullptr;
+
+	fseek(fp, 0L, SEEK_END);
+	size_t size = ftell(fp);
+	fseek(fp, 0L, SEEK_SET);
+
+	char* data = (char *)malloc(size + 1);
+	size_t retval = fread(data, size, 1, fp);
+    data[size] = 0;
+    fclose(fp);
+	//assert(retval == 1);
+
+    return data;
+}
+
 char* tdReadBinaryFile(const char *filename, TdMemoryArena& arena, size_t* psize)
 {
 	FILE *fp = fopen(filename, "rb");
 	if (!fp) return nullptr;
 
 	fseek(fp, 0L, SEEK_END);
-	long int size = ftell(fp);
+	size_t size = ftell(fp);
 	fseek(fp, 0L, SEEK_SET);
 
 	char* data = tdMalloc<char>(arena, size);
@@ -326,6 +344,7 @@ void tdGetFiles(TdMemoryArena& mem_arena, const char* path, TdArray<char*>& file
 		   int len = strlen(ffd.cFileName) - r_trim;
 		   char* t = tdMalloc<char>(mem_arena, len + 1);
 		   strncpy(t, ffd.cFileName, len);
+		   t[len] = 0;
 		   tdArrayAdd(files, t);
 	   }
 	}

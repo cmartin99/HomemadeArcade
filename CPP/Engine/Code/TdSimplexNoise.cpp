@@ -27,11 +27,11 @@ float Dot(const int* g, const float x, const float y) { return g[0] * x + g[1] *
 float Dot(const int* g, const float x, const float y, const float z) { return g[0] * x + g[1] * y + g[2] * z; }
 float Dot(const int* g, const float x, const float y, const float z, const float w) { return g[0] * x + g[1] * y + g[2] * z + g[3] * w; }
 
-int* tdGetSimplexNoisePermTable(uint64 seed)
+int* tdGetSimplexNoisePermTable(int* p, uint64 seed)
 {
-	int* perm = new int[512];
-	for (u64 i = 0; i < 512; ++i) perm[i] = (uint8)(snp[i & 255] * rand());
-	return perm;
+	if (!p) p = new int[512];
+	for (u64 i = 0; i < 512; ++i) p[i] = (uint8)(snp[i & 255] * rand());
+	return p;
 }
 
 /* 2D, 3D and 4D Simplex Noise functions return 'random' values in (-1, 1).
@@ -73,7 +73,7 @@ float tdOctaveNoise2D(const float octaves, const float persistence, const float 
 	// because each octave adds more, and we need a value in [-1, 1].
 	float maxAmplitude = 0;
 
-	for (int i = 0; i < octaves; ++i) 
+	for (int i = 0; i < octaves; ++i)
 	{
 		total += tdRawNoise2D(x * frequency, y * frequency, perm) * amplitude;
 		frequency *= 2;
@@ -98,7 +98,7 @@ float tdOctaveNoise3D(const float octaves, const float persistence, const float 
 	// because each octave adds more, and we need a value in [-1, 1].
 	float maxAmplitude = 0;
 
-	for (int i = 0; i < octaves; ++i) 
+	for (int i = 0; i < octaves; ++i)
 	{
 		total += tdRawNoise3D(x * frequency, y * frequency, z * frequency, perm) * amplitude;
 		frequency *= 2;
@@ -123,7 +123,7 @@ float tdOctaveNoise4D(const float octaves, const float persistence, const float 
 	// because each octave adds more, and we need a value in [-1, 1].
 	float maxAmplitude = 0;
 
-	for (int i = 0; i < octaves; ++i) 
+	for (int i = 0; i < octaves; ++i)
 	{
 		total += tdRawNoise4D(x * frequency, y * frequency, z * frequency, w * frequency, perm) * amplitude;
 		frequency *= 2;

@@ -35,7 +35,7 @@ VkResult UpdateStorageCPU(TdSphereRenderer& renderer, VkCommandBuffer& command_b
 {
 	if (storage.vb.count)
 	{
-		tdVkFreeResource(renderer.vulkan, storage.vb.buffer, storage.vb.gpu_mem, "SphereRenderer::UpdateStorageCPU");
+		tdVkFreeResource(&renderer.vulkan, storage.vb.buffer, storage.vb.gpu_mem, "SphereRenderer::UpdateStorageCPU");
 	}
 
 	storage.vb.count = renderer.vertices3 ? renderer.vertices3->GetCount() : 0;
@@ -63,7 +63,7 @@ VkResult UpdateStorageCPU(TdSphereRenderer& renderer, VkCommandBuffer& command_b
 
 	vkGetBufferMemoryRequirements(vulkan.device, storage.vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -102,7 +102,7 @@ VkResult UpdateIBStorageCPU(TdSphereRenderer& renderer, VkCommandBuffer& command
 {
 	if (storage.ib.count)
 	{
-		tdVkFreeResource(renderer.vulkan, storage.ib.buffer, storage.ib.gpu_mem, "SphereRenderer::UpdateIBStorageCPU");
+		tdVkFreeResource(&renderer.vulkan, storage.ib.buffer, storage.ib.gpu_mem, "SphereRenderer::UpdateIBStorageCPU");
 	}
 
 	storage.ib.count = renderer.indices3 ? renderer.indices3->GetCount() : 0;
@@ -130,7 +130,7 @@ VkResult UpdateIBStorageCPU(TdSphereRenderer& renderer, VkCommandBuffer& command
 
 	vkGetBufferMemoryRequirements(vulkan.device, storage.ib.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -169,7 +169,7 @@ VkResult UpdateStorageGPU(TdSphereRenderer& renderer, VkCommandBuffer& command_b
 {
 	if (storage.vb.count)
 	{
-		tdVkFreeResource(renderer.vulkan, storage.vb.buffer, storage.vb.gpu_mem, "SphereRenderer::UpdateStorageGPU");
+		tdVkFreeResource(&renderer.vulkan, storage.vb.buffer, storage.vb.gpu_mem, "SphereRenderer::UpdateStorageGPU");
 	}
 
 	storage.vb.count = renderer.vertices3 ? renderer.vertices3->GetCount() : 0;
@@ -198,7 +198,7 @@ VkResult UpdateStorageGPU(TdSphereRenderer& renderer, VkCommandBuffer& command_b
 
 	vkGetBufferMemoryRequirements(vulkan.device, stage_vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -241,7 +241,7 @@ VkResult UpdateStorageGPU(TdSphereRenderer& renderer, VkCommandBuffer& command_b
 
 	vkGetBufferMemoryRequirements(vulkan.device, storage.vb.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -266,7 +266,7 @@ VkResult UpdateStorageGPU(TdSphereRenderer& renderer, VkCommandBuffer& command_b
 	copy_region.size = vb_size;
 	vkCmdCopyBuffer(command_buffer, stage_vb.buffer, storage.vb.buffer, 1, &copy_region);
 
-	tdVkFreeResource(renderer.vulkan, stage_vb.buffer, stage_vb.gpu_mem, "SphereRenderer::UpdateStorageGPU_Stage");
+	tdVkFreeResource(&renderer.vulkan, stage_vb.buffer, stage_vb.gpu_mem, "SphereRenderer::UpdateStorageGPU_Stage");
 	return VK_SUCCESS;
 }
 
@@ -274,7 +274,7 @@ VkResult UpdateIBStorageGPU(TdSphereRenderer& renderer, VkCommandBuffer& command
 {
 	if (storage.ib.count)
 	{
-		tdVkFreeResource(renderer.vulkan, storage.ib.buffer, storage.ib.gpu_mem, "SphereRenderer::UpdateIBStorageGPU");
+		tdVkFreeResource(&renderer.vulkan, storage.ib.buffer, storage.ib.gpu_mem, "SphereRenderer::UpdateIBStorageGPU");
 	}
 
 	storage.ib.count = renderer.indices3 ? renderer.indices3->GetCount() : 0;
@@ -306,7 +306,7 @@ VkResult UpdateIBStorageGPU(TdSphereRenderer& renderer, VkCommandBuffer& command
 	mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	mem_alloc.allocationSize = mem_reqs.size;
 
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -348,7 +348,7 @@ VkResult UpdateIBStorageGPU(TdSphereRenderer& renderer, VkCommandBuffer& command
 
 	vkGetBufferMemoryRequirements(vulkan.device, storage.ib.buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -373,7 +373,7 @@ VkResult UpdateIBStorageGPU(TdSphereRenderer& renderer, VkCommandBuffer& command
 	copy_region.size = ib_size;
 	vkCmdCopyBuffer(command_buffer, stage_ib.buffer, storage.ib.buffer, 1, &copy_region);
 
-	tdVkFreeResource(vulkan, stage_ib.buffer, stage_ib.gpu_mem, "SphereRenderer::UpdateIBStorageGPU_Stage");
+	tdVkFreeResource(&vulkan, stage_ib.buffer, stage_ib.gpu_mem, "SphereRenderer::UpdateIBStorageGPU_Stage");
 	return VK_SUCCESS;
 }
 
@@ -618,7 +618,8 @@ void tdVkSphereRendererPresent(TdSphereRenderer& renderer, VkCommandBuffer comma
 		renderer.ubo_cpu.view_proj = view_proj;
 		renderer.ubo_cpu.cam_pos = cam_pos;
 		renderer.ubo_cpu.far_clip = far_clip;
-		tdVkUpdateMappableBuffer(renderer.vulkan.device, renderer.ubo, 0, sizeof(renderer.ubo_cpu), 0, &renderer.ubo_cpu);
+		renderer.ubo.cpu_mem = &renderer.ubo_cpu;
+		tdVkUpdateMappableBuffer(renderer.vulkan.device, renderer.ubo, 0, sizeof(renderer.ubo_cpu), 0);
 
 		VkDeviceSize offsets[1] = { 0 };
 
@@ -681,7 +682,7 @@ VkResult tdVkLoadContent(TdSphereRenderer& renderer)
 	mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	mem_alloc.allocationSize = mem_reqs.size;
 
-	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	if (!tdVkGetMemoryType(&vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
 	{
 		err = VK_ERROR_INITIALIZATION_FAILED;
 		tdDisplayError("GetMemoryType", err);
@@ -803,8 +804,8 @@ VkResult tdVkLoadContent(TdSphereRenderer& renderer)
 	multisample_state.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
 	VkPipelineShaderStageCreateInfo shader_stages[2];
-	shader_stages[0] = tdVkLoadShader(vulkan, "TdSphereRenderer.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-	shader_stages[1] = tdVkLoadShader(vulkan, "TdSphereRenderer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+	shader_stages[0] = tdVkLoadShader(&vulkan, "TdSphereRenderer.vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	shader_stages[1] = tdVkLoadShader(&vulkan, "TdSphereRenderer.frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 	renderer.shader_modules.Add(shader_stages[0].module);
 	renderer.shader_modules.Add(shader_stages[1].module);
 

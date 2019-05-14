@@ -16,12 +16,13 @@ void main()
 	{
 		// sprite
 		if (in_uv.x >= 0) final_color *= texture(sampler_color, in_uv);
+  		if (final_color.a == 0) discard; 
 	}
 	else
 	{
 		// text
 		float a = texture(sampler_color, in_uv).a;
-		if (a < 0.5) final_color = vec4(0,0,0,0);
+		if (a < 0.5) discard;
 	}
 
 	out_color = final_color;

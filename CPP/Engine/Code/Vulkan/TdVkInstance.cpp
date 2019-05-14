@@ -4,11 +4,74 @@
 
 namespace eng {
 
-VkEvent tdVkCreateEvent(TdVkInstance& vulkan)
+void tdVkBindAndMapBuffer(TdVkInstance* vulkan, TdVkBuffer& buffer, uint32 stride, uint32 count)
 {
+	VkResult err = vkBindBufferMemory(vulkan->device, buffer.buffer, buffer.gpu_mem, 0);
+	if (err)
+	{
+		vkFreeMemory(vulkan->device, buffer.gpu_mem, NULL);
+		tdDisplayError("vkBindBufferMemory", err);
+		return;
+	}
+
+	size_t data_size = stride * count;
+	err = vkMapMemory(vulkan->device, buffer.gpu_mem, 0, data_size, 0, (void**)&buffer.cpu_mem);
+	if (err)
+	{
+		vkFreeMemory(vulkan->device, buffer.gpu_mem, NULL);
+		tdDisplayError("vkMapMemory", err);
+		return;
+	}
+}
+
+void tdVkAllocateBuffer(TdVkInstance* vulkan, TdVkBuffer& buffer, uint32 stride, uint32 count, VkBufferUsageFlagBits usage)
+{
+	buffer.count = count;
+	if (count == 0) return;
+
+	VkResult err;
+	size_t data_size = stride * count;
+
+	VkBufferCreateInfo buffer_create_info = {};
+	buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	buffer_create_info.usage = usage;
+	buffer_create_info.size = data_size;
+
+	err = vkCreateBuffer(vulkan->device, &buffer_create_info, NULL, &buffer.buffer);
+	if (err)
+	{
+		tdDisplayError("vkCreateBuffer", err);
+		return;
+	}
+
+	VkMemoryRequirements mem_reqs;
+	vkGetBufferMemoryRequirements(vulkan->device, buffer.buffer, &mem_reqs);
+
+	VkMemoryAllocateInfo mem_alloc = {};
+	mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	mem_alloc.allocationSize = mem_reqs.size;
+
+	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, &mem_alloc.memoryTypeIndex))
+	{
+		err = VK_ERROR_INITIALIZATION_FAILED;
+		tdDisplayError("tdVkGetMemoryType", err);
+		return;
+	}
+
+	err = vkAllocateMemory(vulkan->device, &mem_alloc, NULL, &buffer.gpu_mem);
+	if (err)
+	{
+		tdDisplayError("vkAllocateMemory", err);
+		return;
+	}
+}
+
+VkEvent tdVkCreateEvent(TdVkInstance* vulkan)
+{
+	assert(vulkan);
 	VkEvent result;
 	VkEventCreateInfo info = { VK_STRUCTURE_TYPE_EVENT_CREATE_INFO };
-	VkResult err = vkCreateEvent(vulkan.device, &info, NULL, &result);
+	VkResult err = vkCreateEvent(vulkan->device, &info, NULL, &result);
 	if (err)
 	{
 		tdDisplayError("vkCreateEvent", err);
@@ -17,11 +80,12 @@ VkEvent tdVkCreateEvent(TdVkInstance& vulkan)
 	return result;
 }
 
-VkFence tdVkCreateFence(TdVkInstance& vulkan, VkFenceCreateFlags flags)
+VkFence tdVkCreateFence(TdVkInstance* vulkan, VkFenceCreateFlags flags)
 {
+	assert(vulkan);
 	VkFence result;
 	VkFenceCreateInfo info = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, NULL, flags };
-	VkResult err = vkCreateFence(vulkan.device, &info, NULL, &result);
+	VkResult err = vkCreateFence(vulkan->device, &info, NULL, &result);
 	if (err)
 	{
 		tdDisplayError("vkCreateFence", err);
@@ -30,47 +94,49 @@ VkFence tdVkCreateFence(TdVkInstance& vulkan, VkFenceCreateFlags flags)
 	return result;
 }
 
-VkResult tdVkWaitForFence(TdVkInstance& vulkan, VkFence fence)
+VkResult tdVkWaitForFence(TdVkInstance* vulkan, VkFence fence)
 {
+	assert(vulkan);
 	VkResult result = VK_TIMEOUT;
 	while (result == VK_TIMEOUT);
 	{
-		result = vkWaitForFences(vulkan.device, 1, &fence, VK_TRUE, 100000000);
+		result = vkWaitForFences(vulkan->device, 1, &fence, VK_TRUE, 100000000);
 	}
 	return result;
 }
 
-VkResult tdVkWaitForFrameFence(TdVkInstance& vulkan)
+VkResult tdVkWaitForFrameFence(TdVkInstance* vulkan)
 {
-	VkFence fence = vulkan.frames[vulkan.current_frame].fence;
-	VkResult result = vkGetFenceStatus(vulkan.device, fence);
+	assert(vulkan);
+	VkFence fence = vulkan->frames[vulkan->current_frame].fence;
+	VkResult result = vkGetFenceStatus(vulkan->device, fence);
 	if (result == VK_NOT_READY)
 	{
 		result = tdVkWaitForFence(vulkan, fence);
 		if (result != VK_SUCCESS) return result;
 	}
-	return vkResetFences(vulkan.device, 1, &fence);
+	return vkResetFences(vulkan->device, 1, &fence);
 }
 
-VkResult tdVkUpdateMappableBuffer(VkCommandBuffer command_buffer, TdVkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, void* cpu_buffer)
+VkResult tdVkUpdateMappableBuffer(VkCommandBuffer command_buffer, TdVkBuffer buffer, VkDeviceSize offset, VkDeviceSize size)
 {
-	vkCmdUpdateBuffer(command_buffer, buffer.buffer, offset, size, (uint32*)cpu_buffer);
+	vkCmdUpdateBuffer(command_buffer, buffer.buffer, offset, size, (uint32*)buffer.cpu_mem);
 	return VK_SUCCESS;
 }
 
-VkResult tdVkUpdateMappableBuffer(VkDevice device, TdVkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void* cpu_buffer)
+VkResult tdVkUpdateMappableBuffer(VkDevice device, TdVkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags)
 {
 	VkResult err;
 	void* cpu_mem;
 
-	err = vkMapMemory(device, buffer.gpu_mem, offset, size, flags, (void **)&cpu_mem);
+	err = vkMapMemory(device, buffer.gpu_mem, offset, size, flags, (void**)&cpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkMapMemory", err);
 		return err;
 	}
 
-	memcpy(cpu_mem, cpu_buffer, size);
+	memcpy(cpu_mem, buffer.cpu_mem, size);
 
 	vkUnmapMemory(device, buffer.gpu_mem);
 	if (err)
@@ -120,7 +186,7 @@ VkShaderModule LoadShader(const char *file_name, VkDevice device, VkShaderStageF
 {
 	char full_path[500];
 	memset(full_path, 0, 500);
-	if (shader_path) strncpy(full_path, shader_path, 400);
+	if (shader_path) strcpy_safe(full_path, shader_path);
 	strncat(full_path, file_name, 500 - strlen(full_path));
 
 	size_t size = 0;
@@ -144,12 +210,13 @@ VkShaderModule LoadShader(const char *file_name, VkDevice device, VkShaderStageF
 	return shader_module;
 }
 
-VkPipelineShaderStageCreateInfo tdVkLoadShader(TdVkInstance& vulkan, const char* file_name, VkShaderStageFlagBits stage)
+VkPipelineShaderStageCreateInfo tdVkLoadShader(TdVkInstance* vulkan, const char* file_name, VkShaderStageFlagBits stage)
 {
+	assert(vulkan);
 	VkPipelineShaderStageCreateInfo shader_stage = {};
 	shader_stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shader_stage.stage = stage;
-	shader_stage.module = LoadShader(file_name, vulkan.device, stage);
+	shader_stage.module = LoadShader(file_name, vulkan->device, stage);
 
 	if (!shader_stage.module)
 	{
@@ -162,13 +229,14 @@ VkPipelineShaderStageCreateInfo tdVkLoadShader(TdVkInstance& vulkan, const char*
 	return shader_stage;
 }
 
-VkBool32 tdVkGetMemoryType(TdVkInstance& vulkan, uint32 type_bits, VkFlags properties, uint32* type_index)
+VkBool32 tdVkGetMemoryType(TdVkInstance* vulkan, uint32 type_bits, VkFlags properties, uint32* type_index)
 {
-	for (u64 i = 0; i < vulkan.device_memory_properties.memoryTypeCount; ++i)
+	assert(vulkan);
+	for (u64 i = 0; i < vulkan->device_memory_properties.memoryTypeCount; ++i)
 	{
 		if ((type_bits & 1) == 1)
 		{
-			if ((vulkan.device_memory_properties.memoryTypes[i].propertyFlags & properties) == properties)
+			if ((vulkan->device_memory_properties.memoryTypes[i].propertyFlags & properties) == properties)
 			{
 				*type_index = i;
 				return true;
@@ -280,8 +348,9 @@ int ChoosePhysicalDeviceIndex(VkPhysicalDevice* devices)
 	return 0;
 }
 
-VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buffer, uint32 index_count)
+VkResult UploadIndexBufferTri(TdVkInstance* vulkan, VkCommandBuffer command_buffer, uint32 index_count)
 {
+	assert(vulkan);
 	VkResult err;
 	TdArray1<uint32> indices(index_count);
 	uint32 face_count = index_count / 6;
@@ -298,23 +367,23 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 
 	struct Op
 	{
-		TdVkInstance& vulkan;
+		TdVkInstance* vulkan;
 		VkBuffer stage_buffer;
 		VkDeviceMemory stage_gpu_mem;
 		VkBuffer index_buffer;
 		VkDeviceMemory index_gpu_mem;
 
-		Op(TdVkInstance& vulkan) : vulkan(vulkan), stage_buffer(NULL), stage_gpu_mem(NULL), index_buffer(NULL), index_gpu_mem(NULL) {}
+		Op(TdVkInstance* vulkan) : vulkan(vulkan), stage_buffer(NULL), stage_gpu_mem(NULL), index_buffer(NULL), index_gpu_mem(NULL) {}
 		void Cleanup()
 		{
-			if (stage_buffer) vkDestroyBuffer(vulkan.device, stage_buffer, NULL);
-			if (stage_gpu_mem) vkFreeMemory(vulkan.device, stage_gpu_mem, NULL);
-			if (index_buffer) vkDestroyBuffer(vulkan.device, index_buffer, NULL);
-			if (index_gpu_mem) vkFreeMemory(vulkan.device, index_gpu_mem, NULL);
-			if (vulkan.ib_tri.count)
+			if (stage_buffer) vkDestroyBuffer(vulkan->device, stage_buffer, NULL);
+			if (stage_gpu_mem) vkFreeMemory(vulkan->device, stage_gpu_mem, NULL);
+			if (index_buffer) vkDestroyBuffer(vulkan->device, index_buffer, NULL);
+			if (index_gpu_mem) vkFreeMemory(vulkan->device, index_gpu_mem, NULL);
+			if (vulkan->ib_tri.count)
 			{
-				tdVkFreeResource(vulkan, vulkan.ib_tri.buffer, vulkan.ib_tri.gpu_mem, "UploadIndexBufferTri");
-				vulkan.ib_tri.count = 0;
+				tdVkFreeResource(vulkan, vulkan->ib_tri.buffer, vulkan->ib_tri.gpu_mem, "UploadIndexBufferTri");
+				vulkan->ib_tri.count = 0;
 			}
 		}
 	};
@@ -328,7 +397,7 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 	ib_info.size = ib_size;
 	ib_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	err = vkCreateBuffer(vulkan.device, &ib_info, NULL, &op.stage_buffer);
+	err = vkCreateBuffer(vulkan->device, &ib_info, NULL, &op.stage_buffer);
 	if (err)
 	{
 		tdDisplayError("vkCreateBuffer", err);
@@ -337,7 +406,7 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 	}
 
 	VkMemoryRequirements mem_reqs = {};
-	vkGetBufferMemoryRequirements(vulkan.device, op.stage_buffer, &mem_reqs);
+	vkGetBufferMemoryRequirements(vulkan->device, op.stage_buffer, &mem_reqs);
 
 	VkMemoryAllocateInfo mem_alloc = {};
 	mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -351,7 +420,7 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 		return err;
 	}
 
-	err = vkAllocateMemory(vulkan.device, &mem_alloc, NULL, &op.stage_gpu_mem);
+	err = vkAllocateMemory(vulkan->device, &mem_alloc, NULL, &op.stage_gpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkAllocateMemory", err);
@@ -360,7 +429,7 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 	}
 
 	void *cpu_mem;
-	err = vkMapMemory(vulkan.device, op.stage_gpu_mem, 0, ib_size, 0, &cpu_mem);
+	err = vkMapMemory(vulkan->device, op.stage_gpu_mem, 0, ib_size, 0, &cpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkMapMemory", err);
@@ -369,9 +438,9 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 	}
 
 	memcpy(cpu_mem, indices.ptr(), ib_size);
-	vkUnmapMemory(vulkan.device, op.stage_gpu_mem);
+	vkUnmapMemory(vulkan->device, op.stage_gpu_mem);
 
-	err = vkBindBufferMemory(vulkan.device, op.stage_buffer, op.stage_gpu_mem, 0);
+	err = vkBindBufferMemory(vulkan->device, op.stage_buffer, op.stage_gpu_mem, 0);
 	if (err)
 	{
 		tdDisplayError("vkBindBufferMemory", err);
@@ -380,7 +449,7 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 	}
 
 	ib_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	err = vkCreateBuffer(vulkan.device, &ib_info, NULL, &op.index_buffer);
+	err = vkCreateBuffer(vulkan->device, &ib_info, NULL, &op.index_buffer);
 	if (err)
 	{
 		tdDisplayError("vkCreateBuffer", err);
@@ -388,7 +457,7 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 		return err;
 	}
 
-	vkGetBufferMemoryRequirements(vulkan.device, op.index_buffer, &mem_reqs);
+	vkGetBufferMemoryRequirements(vulkan->device, op.index_buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
 	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
 	{
@@ -398,7 +467,7 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 		return err;
 	}
 
-	err = vkAllocateMemory(vulkan.device, &mem_alloc, NULL, &op.index_gpu_mem);
+	err = vkAllocateMemory(vulkan->device, &mem_alloc, NULL, &op.index_gpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkAllocateMemory", err);
@@ -406,7 +475,7 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 		return err;
 	}
 
-	err = vkBindBufferMemory(vulkan.device, op.index_buffer, op.index_gpu_mem, 0);
+	err = vkBindBufferMemory(vulkan->device, op.index_buffer, op.index_gpu_mem, 0);
 	if (err)
 	{
 		tdDisplayError("vkBindBufferMemory", err);
@@ -418,21 +487,22 @@ VkResult UploadIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buff
 	copy_region.size = ib_size;
 	vkCmdCopyBuffer(command_buffer, op.stage_buffer, op.index_buffer, 1, &copy_region);
 
-	if (vulkan.ib_tri.count)
+	if (vulkan->ib_tri.count)
 	{
-		tdVkFreeResource(vulkan, vulkan.ib_tri.buffer, vulkan.ib_tri.gpu_mem, "UploadIndexBufferTri");
+		tdVkFreeResource(vulkan, vulkan->ib_tri.buffer, vulkan->ib_tri.gpu_mem, "UploadIndexBufferTri");
 	}
 
-	vulkan.ib_tri.count = index_count;
-	vulkan.ib_tri.buffer = op.index_buffer;
-	vulkan.ib_tri.gpu_mem = op.index_gpu_mem;
+	vulkan->ib_tri.count = index_count;
+	vulkan->ib_tri.buffer = op.index_buffer;
+	vulkan->ib_tri.gpu_mem = op.index_gpu_mem;
 
 	tdVkFreeResource(vulkan, op.stage_buffer, op.stage_gpu_mem, "UploadIndexBufferTri_Stage");
 	return VK_SUCCESS;
 }
 
-VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buffer, uint32 index_count)
+VkResult UploadIndexBufferLine(TdVkInstance* vulkan, VkCommandBuffer command_buffer, uint32 index_count)
 {
+	assert(vulkan);
 	VkResult err;
 	TdArray1<uint32> indices(index_count);
 	uint32 line_count = index_count / 2;
@@ -445,23 +515,23 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 
 	struct Op
 	{
-		TdVkInstance& vulkan;
+		TdVkInstance* vulkan;
 		VkBuffer stage_buffer;
 		VkDeviceMemory stage_gpu_mem;
 		VkBuffer index_buffer;
 		VkDeviceMemory index_gpu_mem;
 
-		Op(TdVkInstance& vulkan) : vulkan(vulkan), stage_buffer(NULL), stage_gpu_mem(NULL), index_buffer(NULL), index_gpu_mem(NULL) {}
+		Op(TdVkInstance* vulkan) : vulkan(vulkan), stage_buffer(NULL), stage_gpu_mem(NULL), index_buffer(NULL), index_gpu_mem(NULL) {}
 		void Cleanup()
 		{
-			if (stage_buffer) vkDestroyBuffer(vulkan.device, stage_buffer, NULL);
-			if (stage_gpu_mem) vkFreeMemory(vulkan.device, stage_gpu_mem, NULL);
-			if (index_buffer) vkDestroyBuffer(vulkan.device, index_buffer, NULL);
-			if (index_gpu_mem) vkFreeMemory(vulkan.device, index_gpu_mem, NULL);
-			if (vulkan.ib_line.count)
+			if (stage_buffer) vkDestroyBuffer(vulkan->device, stage_buffer, NULL);
+			if (stage_gpu_mem) vkFreeMemory(vulkan->device, stage_gpu_mem, NULL);
+			if (index_buffer) vkDestroyBuffer(vulkan->device, index_buffer, NULL);
+			if (index_gpu_mem) vkFreeMemory(vulkan->device, index_gpu_mem, NULL);
+			if (vulkan->ib_line.count)
 			{
-				tdVkFreeResource(vulkan, vulkan.ib_line.buffer, vulkan.ib_line.gpu_mem, "UploadIndexBufferLine");
-				vulkan.ib_line.count = 0;
+				tdVkFreeResource(vulkan, vulkan->ib_line.buffer, vulkan->ib_line.gpu_mem, "UploadIndexBufferLine");
+				vulkan->ib_line.count = 0;
 			}
 		}
 	};
@@ -475,7 +545,7 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 	ib_info.size = ib_size;
 	ib_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-	err = vkCreateBuffer(vulkan.device, &ib_info, NULL, &op.stage_buffer);
+	err = vkCreateBuffer(vulkan->device, &ib_info, NULL, &op.stage_buffer);
 	if (err)
 	{
 		tdDisplayError("vkCreateBuffer", err);
@@ -484,7 +554,7 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 	}
 
 	VkMemoryRequirements mem_reqs = {};
-	vkGetBufferMemoryRequirements(vulkan.device, op.stage_buffer, &mem_reqs);
+	vkGetBufferMemoryRequirements(vulkan->device, op.stage_buffer, &mem_reqs);
 
 	VkMemoryAllocateInfo mem_alloc = {};
 	mem_alloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -498,7 +568,7 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 		return err;
 	}
 
-	err = vkAllocateMemory(vulkan.device, &mem_alloc, NULL, &op.stage_gpu_mem);
+	err = vkAllocateMemory(vulkan->device, &mem_alloc, NULL, &op.stage_gpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkAllocateMemory", err);
@@ -507,7 +577,7 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 	}
 
 	void *cpu_mem;
-	err = vkMapMemory(vulkan.device, op.stage_gpu_mem, 0, ib_size, 0, &cpu_mem);
+	err = vkMapMemory(vulkan->device, op.stage_gpu_mem, 0, ib_size, 0, &cpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkMapMemory", err);
@@ -516,9 +586,9 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 	}
 
 	memcpy(cpu_mem, indices.ptr(), ib_size);
-	vkUnmapMemory(vulkan.device, op.stage_gpu_mem);
+	vkUnmapMemory(vulkan->device, op.stage_gpu_mem);
 
-	err = vkBindBufferMemory(vulkan.device, op.stage_buffer, op.stage_gpu_mem, 0);
+	err = vkBindBufferMemory(vulkan->device, op.stage_buffer, op.stage_gpu_mem, 0);
 	if (err)
 	{
 		tdDisplayError("vkBindBufferMemory", err);
@@ -527,7 +597,7 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 	}
 
 	ib_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	err = vkCreateBuffer(vulkan.device, &ib_info, NULL, &op.index_buffer);
+	err = vkCreateBuffer(vulkan->device, &ib_info, NULL, &op.index_buffer);
 	if (err)
 	{
 		tdDisplayError("vkCreateBuffer", err);
@@ -535,7 +605,7 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 		return err;
 	}
 
-	vkGetBufferMemoryRequirements(vulkan.device, op.index_buffer, &mem_reqs);
+	vkGetBufferMemoryRequirements(vulkan->device, op.index_buffer, &mem_reqs);
 	mem_alloc.allocationSize = mem_reqs.size;
 	if (!tdVkGetMemoryType(vulkan, mem_reqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &mem_alloc.memoryTypeIndex))
 	{
@@ -545,7 +615,7 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 		return err;
 	}
 
-	err = vkAllocateMemory(vulkan.device, &mem_alloc, NULL, &op.index_gpu_mem);
+	err = vkAllocateMemory(vulkan->device, &mem_alloc, NULL, &op.index_gpu_mem);
 	if (err)
 	{
 		tdDisplayError("vkAllocateMemory", err);
@@ -553,7 +623,7 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 		return err;
 	}
 
-	err = vkBindBufferMemory(vulkan.device, op.index_buffer, op.index_gpu_mem, 0);
+	err = vkBindBufferMemory(vulkan->device, op.index_buffer, op.index_gpu_mem, 0);
 	if (err)
 	{
 		tdDisplayError("vkBindBufferMemory", err);
@@ -565,23 +635,24 @@ VkResult UploadIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buf
 	copy_region.size = ib_size;
 	vkCmdCopyBuffer(command_buffer, op.stage_buffer, op.index_buffer, 1, &copy_region);
 
-	if (vulkan.ib_line.count)
+	if (vulkan->ib_line.count)
 	{
-		tdVkFreeResource(vulkan, vulkan.ib_line.buffer, vulkan.ib_line.gpu_mem, "UploadIndexBufferLine");
+		tdVkFreeResource(vulkan, vulkan->ib_line.buffer, vulkan->ib_line.gpu_mem, "UploadIndexBufferLine");
 	}
 
-	vulkan.ib_line.count = index_count;
-	vulkan.ib_line.buffer = op.index_buffer;
-	vulkan.ib_line.gpu_mem = op.index_gpu_mem;
+	vulkan->ib_line.count = index_count;
+	vulkan->ib_line.buffer = op.index_buffer;
+	vulkan->ib_line.gpu_mem = op.index_gpu_mem;
 
 	tdVkFreeResource(vulkan, op.stage_buffer, op.stage_gpu_mem, "UploadIndexBufferLine_Staged");
 
 	return VK_SUCCESS;
 }
 
-void tdVkBindIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buffer, uint32 index_count)
+void tdVkBindIndexBufferTri(TdVkInstance* vulkan, VkCommandBuffer command_buffer, uint32 index_count)
 {
-	if (index_count > vulkan.ib_tri.count)
+	assert(vulkan);
+	if (index_count > vulkan->ib_tri.count)
 	{
 		if (UploadIndexBufferTri(vulkan, command_buffer, index_count) < 0)
 		{
@@ -589,12 +660,13 @@ void tdVkBindIndexBufferTri(TdVkInstance& vulkan, VkCommandBuffer command_buffer
 		}
 	}
 
-	vkCmdBindIndexBuffer(command_buffer, vulkan.ib_tri.buffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(command_buffer, vulkan->ib_tri.buffer, 0, VK_INDEX_TYPE_UINT32);
 }
 
-void tdVkBindIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buffer, uint32 index_count)
+void tdVkBindIndexBufferLine(TdVkInstance* vulkan, VkCommandBuffer command_buffer, uint32 index_count)
 {
-	if (index_count > vulkan.ib_line.count)
+	assert(vulkan);
+	if (index_count > vulkan->ib_line.count)
 	{
 		if (UploadIndexBufferLine(vulkan, command_buffer, index_count) < 0)
 		{
@@ -602,54 +674,58 @@ void tdVkBindIndexBufferLine(TdVkInstance& vulkan, VkCommandBuffer command_buffe
 		}
 	}
 
-	vkCmdBindIndexBuffer(command_buffer, vulkan.ib_line.buffer, 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(command_buffer, vulkan->ib_line.buffer, 0, VK_INDEX_TYPE_UINT32);
 }
 
-void tdVkFreeResource(TdVkInstance& vulkan, VkBuffer buffer, VkDeviceMemory mem, const char* name)
+void tdVkFreeResource(TdVkInstance* vulkan, VkBuffer buffer, VkDeviceMemory mem, const char* name)
 {
-	TdVkBuffer b = { 0, buffer, mem, name };
+	TdVkBuffer b = { 0, 0, buffer, mem, nullptr, name };
 	tdVkFreeResource(vulkan, b, name);
 }
 
-void tdVkFreeResource(TdVkInstance& vulkan, TdVkBuffer buffer, const char* name)
+void tdVkFreeResource(TdVkInstance* vulkan, TdVkBuffer buffer, const char* name)
 {
+	assert(vulkan);
 	//TdMutexLock lock(vulkan.frames[vulkan.current_frame].free_resource_mutex);
 
 	buffer.name = name;
-	vulkan.frames[vulkan.current_frame].buffer_release.Push(buffer);
+	vulkan->frames[vulkan->current_frame].buffer_release.Push(buffer);
 
 	//TdArray<TdVkBuffer>& log = vulkan.frames[vulkan.current_frame].buffer_release_log;
 	//for (int i = 0; i < log.GetCount(); i++) assert(log[i].gpu_mem != buffer.gpu_mem);
 	//vulkan.frames[vulkan.current_frame].buffer_release_log.Push(buffer);
 }
 
-void tdVkUpdateFreeResources(TdVkInstance& vulkan)
+void tdVkUpdateFreeResources(TdVkInstance* vulkan)
 {
+	assert(vulkan);
 	//TdMutexLock lock(vulkan.frames[vulkan.current_frame].free_resource_mutex);
 
-	int count = vulkan.frames[vulkan.current_frame].buffer_release.GetCount();
-	TdVkBuffer* buffers = vulkan.frames[vulkan.current_frame].buffer_release.ptr();
+	int count = vulkan->frames[vulkan->current_frame].buffer_release.GetCount();
+	TdVkBuffer* buffers = vulkan->frames[vulkan->current_frame].buffer_release.ptr();
 
 	while (count--)
 	{
-		if (buffers->gpu_mem) vkFreeMemory(vulkan.device, buffers->gpu_mem, NULL);
-		if (buffers->buffer) vkDestroyBuffer(vulkan.device, buffers->buffer, NULL);
+		if (buffers->gpu_mem) vkFreeMemory(vulkan->device, buffers->gpu_mem, NULL);
+		if (buffers->buffer) vkDestroyBuffer(vulkan->device, buffers->buffer, NULL);
 		++buffers;
 	}
 
-	vulkan.frames[vulkan.current_frame].buffer_release.Clear();
+	vulkan->frames[vulkan->current_frame].buffer_release.Clear();
 }
 
-void tdVkFreeCommandBuffer(TdVkInstance& vulkan, VkQueue queue, VkCommandBuffer command_buffer)
+void tdVkFreeCommandBuffer(TdVkInstance* vulkan, VkQueue queue, VkCommandBuffer command_buffer)
 {
-	TdArray1<VkCommandBuffer>& list = (queue == vulkan.queue ? vulkan.command_buffer_free : vulkan.command_buffer_free2);
+	assert(vulkan);
+	TdArray1<VkCommandBuffer>& list = (queue == vulkan->queue ? vulkan->command_buffer_free : vulkan->command_buffer_free2);
 	list.Add(command_buffer);
 }
 
-void tdVkUpdateFreeCommandBuffers(TdVkInstance& vulkan, VkQueue queue)
+void tdVkUpdateFreeCommandBuffers(TdVkInstance* vulkan, VkQueue queue)
 {
-	TdArray1<VkCommandBuffer>& list = (queue == vulkan.queue ? vulkan.command_buffer_free : vulkan.command_buffer_free2);
-	vkFreeCommandBuffers(vulkan.device, vulkan.command_pool, list.GetCount(), list.ptr());
+	assert(vulkan);
+	TdArray1<VkCommandBuffer>& list = (queue == vulkan->queue ? vulkan->command_buffer_free : vulkan->command_buffer_free2);
+	vkFreeCommandBuffers(vulkan->device, vulkan->command_pool, list.GetCount(), list.ptr());
 	list.Clear();
 }
 
@@ -662,14 +738,15 @@ bool IsPresentModeSupported(TdArray1<VkPresentModeKHR>& supported_modes, VkPrese
 	return false;
 }
 
-VkResult InitSwapChain(TdVkInstance& vulkan, uint32 *width, uint32 *height)
+VkResult InitSwapChain(TdVkInstance* vulkan, uint32 *width, uint32 *height)
 {
+	assert(vulkan);
 	VkResult err;
-	VkSwapchainKHR old_swap_chain = vulkan.swap_chain;
-	uint32 old_frame_count = vulkan.frame_count;
+	VkSwapchainKHR old_swap_chain = vulkan->swap_chain;
+	uint32 old_frame_count = vulkan->frame_count;
 
 	VkSurfaceCapabilitiesKHR surf_caps;
-	err = vulkan.fpGetPhysicalDeviceSurfaceCapabilitiesKHR(vulkan.physical_device, vulkan.surface, &surf_caps);
+	err = vulkan->fpGetPhysicalDeviceSurfaceCapabilitiesKHR(vulkan->physical_device, vulkan->surface, &surf_caps);
 	if (err)
 	{
 		tdDisplayError("fpGetPhysicalDeviceSurfaceCapabilitiesKHR", err);
@@ -677,7 +754,7 @@ VkResult InitSwapChain(TdVkInstance& vulkan, uint32 *width, uint32 *height)
 	}
 
 	uint32 present_mode_count;
-	err = vulkan.fpGetPhysicalDeviceSurfacePresentModesKHR(vulkan.physical_device, vulkan.surface, &present_mode_count, NULL);
+	err = vulkan->fpGetPhysicalDeviceSurfacePresentModesKHR(vulkan->physical_device, vulkan->surface, &present_mode_count, NULL);
 	if (err)
 	{
 		tdDisplayError("fpGetPhysicalDeviceSurfacePresentModesKHR1", err);
@@ -687,7 +764,7 @@ VkResult InitSwapChain(TdVkInstance& vulkan, uint32 *width, uint32 *height)
 	assert(present_mode_count > 0);
 	TdArray1<VkPresentModeKHR> present_modes(present_mode_count);
 
-	err = vulkan.fpGetPhysicalDeviceSurfacePresentModesKHR(vulkan.physical_device, vulkan.surface, &present_mode_count, present_modes.ptr());
+	err = vulkan->fpGetPhysicalDeviceSurfacePresentModesKHR(vulkan->physical_device, vulkan->surface, &present_mode_count, present_modes.ptr());
 	if (err)
 	{
 		tdDisplayError("fpGetPhysicalDeviceSurfacePresentModesKHR2", err);
@@ -714,10 +791,10 @@ VkResult InitSwapChain(TdVkInstance& vulkan, uint32 *width, uint32 *height)
 
 	VkSwapchainCreateInfoKHR swap_chain_create_info = {};
 	swap_chain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swap_chain_create_info.surface = vulkan.surface;
+	swap_chain_create_info.surface = vulkan->surface;
 	swap_chain_create_info.minImageCount = min<uint32>(max<uint32>(3, surf_caps.minImageCount), surf_caps.maxImageCount > 0 ? surf_caps.maxImageCount : 3 );
-	swap_chain_create_info.imageFormat = vulkan.color_format;
-	swap_chain_create_info.imageColorSpace = vulkan.color_space;
+	swap_chain_create_info.imageFormat = vulkan->color_format;
+	swap_chain_create_info.imageColorSpace = vulkan->color_space;
 	swap_chain_create_info.imageExtent = { swap_chain_extent.width, swap_chain_extent.height };
 	swap_chain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	swap_chain_create_info.preTransform = (VkSurfaceTransformFlagBitsKHR)(surf_caps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) ? VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR : surf_caps.currentTransform;
@@ -728,10 +805,10 @@ VkResult InitSwapChain(TdVkInstance& vulkan, uint32 *width, uint32 *height)
 	swap_chain_create_info.clipped = true;
 	swap_chain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-	err = vulkan.fpCreateSwapchainKHR(vulkan.device, &swap_chain_create_info, NULL, &vulkan.swap_chain);
+	err = vulkan->fpCreateSwapchainKHR(vulkan->device, &swap_chain_create_info, NULL, &vulkan->swap_chain);
 	if (err)
 	{
-		tdDisplayError("fpGetPhysicalDeviceSurfacePresentModesKHR2", err);
+		tdDisplayError("fpCreateSwapchainKHR", err);
 		return err;
 	}
 
@@ -739,36 +816,36 @@ VkResult InitSwapChain(TdVkInstance& vulkan, uint32 *width, uint32 *height)
 	{
 		for (u64 i = 0; i < old_frame_count; ++i)
 		{
-			vkDestroyImageView(vulkan.device, vulkan.frames[i].image_view, NULL);
+			vkDestroyImageView(vulkan->device, vulkan->frames[i].image_view, NULL);
 		}
-		vulkan.fpDestroySwapchainKHR(vulkan.device, old_swap_chain, NULL);
+		vulkan->fpDestroySwapchainKHR(vulkan->device, old_swap_chain, NULL);
 	}
 
 	// New Frame Count
-	err = vulkan.fpGetSwapchainImagesKHR(vulkan.device, vulkan.swap_chain, &vulkan.frame_count, NULL);
+	err = vulkan->fpGetSwapchainImagesKHR(vulkan->device, vulkan->swap_chain, &vulkan->frame_count, NULL);
 	if (err)
 	{
 		tdDisplayError("fpGetSwapchainImagesKHR1", err);
 		return err;
 	}
 
-	vulkan.frames = new TdVkInstance::FrameData[vulkan.frame_count];
-	VkImage* frame_images = (VkImage*)malloc(sizeof(VkImage) * vulkan.frame_count);
+	vulkan->frames = new TdVkInstance::FrameData[vulkan->frame_count];
+	VkImage* frame_images = (VkImage*)malloc(sizeof(VkImage) * vulkan->frame_count);
 
-	err = vulkan.fpGetSwapchainImagesKHR(vulkan.device, vulkan.swap_chain, &vulkan.frame_count, frame_images);
+	err = vulkan->fpGetSwapchainImagesKHR(vulkan->device, vulkan->swap_chain, &vulkan->frame_count, frame_images);
 	if (err)
 	{
 		tdDisplayError("fpGetSwapchainImagesKHR2", err);
 		return err;
 	}
 
-	for (u64 i = 0; i < vulkan.frame_count; ++i)
+	for (u64 i = 0; i < vulkan->frame_count; ++i)
 	{
-		vulkan.frames[i].image = frame_images[i];
+		vulkan->frames[i].image = frame_images[i];
 
 		VkImageViewCreateInfo color_attachment_view = {};
 		color_attachment_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		color_attachment_view.format = vulkan.color_format;
+		color_attachment_view.format = vulkan->color_format;
 		color_attachment_view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 		color_attachment_view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		color_attachment_view.subresourceRange.baseMipLevel = 0;
@@ -783,10 +860,10 @@ VkResult InitSwapChain(TdVkInstance& vulkan, uint32 *width, uint32 *height)
 		subresource_range.levelCount = 1;
 		subresource_range.layerCount = 1;
 
-		tdVkSetImageLayout(vulkan.setup_command_buffer, vulkan.frames[i].image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, subresource_range);
-		color_attachment_view.image = vulkan.frames[i].image;
+		tdVkSetImageLayout(vulkan->setup_command_buffer, vulkan->frames[i].image, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, subresource_range);
+		color_attachment_view.image = vulkan->frames[i].image;
 
-		err = vkCreateImageView(vulkan.device, &color_attachment_view, NULL, &vulkan.frames[i].image_view);
+		err = vkCreateImageView(vulkan->device, &color_attachment_view, NULL, &vulkan->frames[i].image_view);
 		if (err)
 		{
 			tdDisplayError("vkCreateImageView", err);
@@ -806,11 +883,12 @@ VKAPI_ATTR VkBool32 VKAPI_CALL tdVKDebugReportCallback(VkDebugReportFlagsEXT fla
 	return VK_FALSE;
 }
 
-VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_validation, HINSTANCE hinst, HWND hwnd)
+VkResult tdVkInitVulkan(TdVkInstance* vulkan, const char* name, bool enable_validation, HINSTANCE hinst, HWND hwnd)
 {
+	assert(vulkan);
 	VkResult err;
-	vulkan.ib_tri.count = 0;
-	vulkan.ib_line.count = 0;
+	vulkan->ib_tri.count = 0;
+	vulkan->ib_line.count = 0;
 
 	VkApplicationInfo app_info = {};
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -836,7 +914,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 		instance_create_info.ppEnabledLayerNames = enabled_validation_layers;
 	}
 
-	err = vkCreateInstance(&instance_create_info, NULL, &vulkan.instance);
+	err = vkCreateInstance(&instance_create_info, NULL, &vulkan->instance);
 	if (err)
 	{
 		tdDisplayError("vkCreateInstance", err);
@@ -845,13 +923,13 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 
 	PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT =
         reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>
-            (vkGetInstanceProcAddr(vulkan.instance, "vkCreateDebugReportCallbackEXT"));
+            (vkGetInstanceProcAddr(vulkan->instance, "vkCreateDebugReportCallbackEXT"));
     PFN_vkDebugReportMessageEXT vkDebugReportMessageEXT =
         reinterpret_cast<PFN_vkDebugReportMessageEXT>
-            (vkGetInstanceProcAddr(vulkan.instance, "vkDebugReportMessageEXT"));
+            (vkGetInstanceProcAddr(vulkan->instance, "vkDebugReportMessageEXT"));
     PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT =
         reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>
-            (vkGetInstanceProcAddr(vulkan.instance, "vkDestroyDebugReportCallbackEXT"));
+            (vkGetInstanceProcAddr(vulkan->instance, "vkDestroyDebugReportCallbackEXT"));
 
 	VkDebugReportCallbackCreateInfoEXT callback_info = {};
 	VkDebugReportCallbackEXT callback;
@@ -863,7 +941,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 							VK_DEBUG_REPORT_WARNING_BIT_EXT |
 							VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
 
-		err = vkCreateDebugReportCallbackEXT(vulkan.instance, &callback_info, NULL, &callback);
+		err = vkCreateDebugReportCallbackEXT(vulkan->instance, &callback_info, NULL, &callback);
 		if (err)
 		{
 			tdDisplayError("vkCreateDebugReportCallbackEXT", err);
@@ -872,7 +950,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	}
 
 	uint32 gpu_count = 0;
-	err = vkEnumeratePhysicalDevices(vulkan.instance, &gpu_count, NULL);
+	err = vkEnumeratePhysicalDevices(vulkan->instance, &gpu_count, NULL);
 	if (err)
 	{
 		tdDisplayError("vkEnumeratePhysicalDevices", err);
@@ -882,26 +960,28 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	assert(gpu_count > 0);
 
 	VkPhysicalDevice* physical_devices = (VkPhysicalDevice*)malloc(sizeof(VkPhysicalDevice) * gpu_count);
-	err = vkEnumeratePhysicalDevices(vulkan.instance, &gpu_count, physical_devices);
+	err = vkEnumeratePhysicalDevices(vulkan->instance, &gpu_count, physical_devices);
 	if (err)
 	{
 		tdDisplayError("vkEnumeratePhysicalDevices", err);
 		return err;
 	}
 
-	vulkan.physical_device = physical_devices[ChoosePhysicalDeviceIndex(physical_devices)];
+	vulkan->physical_device = physical_devices[ChoosePhysicalDeviceIndex(physical_devices)];
 
 	uint32 queue_count;
-	vkGetPhysicalDeviceQueueFamilyProperties(vulkan.physical_device, &queue_count, NULL);
+	vkGetPhysicalDeviceQueueFamilyProperties(vulkan->physical_device, &queue_count, NULL);
 	assert(queue_count > 0);
 
 	VkQueueFamilyProperties* queue_props = (VkQueueFamilyProperties*)malloc(sizeof(VkQueueFamilyProperties) * queue_count);
-	vkGetPhysicalDeviceQueueFamilyProperties(vulkan.physical_device, &queue_count, queue_props);
+	vkGetPhysicalDeviceQueueFamilyProperties(vulkan->physical_device, &queue_count, queue_props);
 
+	const int32 req_queue_count = 1;
 	uint64 graphics_queue_index = 0;
-	for (graphics_queue_index = 0; graphics_queue_index < queue_count; graphics_queue_index++)
+	for (graphics_queue_index = 0; graphics_queue_index < queue_count; ++graphics_queue_index)
 	{
-		if (queue_props[graphics_queue_index].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		if ((queue_props[graphics_queue_index].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+			 queue_props[graphics_queue_index].queueCount >= req_queue_count)
 			break;
 	}
 
@@ -911,8 +991,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	VkDeviceQueueCreateInfo queue_create_info = {};
 	queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	queue_create_info.queueFamilyIndex = graphics_queue_index;
-	queue_create_info.queueCount = 2;
-	assert(queue_props[graphics_queue_index].queueCount >= 2);
+	queue_create_info.queueCount = req_queue_count;
 	queue_create_info.pQueuePriorities = queue_priorities;
 
 	// Create device
@@ -929,17 +1008,17 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 		device_create_info.ppEnabledLayerNames = enabled_validation_layers;
 	}
 
-	err = vkCreateDevice(vulkan.physical_device, &device_create_info, NULL, &vulkan.device);
+	err = vkCreateDevice(vulkan->physical_device, &device_create_info, NULL, &vulkan->device);
 	if (err)
 	{
 		tdDisplayError("vkCreateDevice", err);
 		return err;
 	}
 
-	vkGetPhysicalDeviceProperties(vulkan.physical_device, &vulkan.device_properties);
-	vkGetPhysicalDeviceMemoryProperties(vulkan.physical_device, &vulkan.device_memory_properties);
-	vkGetDeviceQueue(vulkan.device, graphics_queue_index, 0, &vulkan.queue);
-	vkGetDeviceQueue(vulkan.device, graphics_queue_index, 1, &vulkan.queue2);
+	vkGetPhysicalDeviceProperties(vulkan->physical_device, &vulkan->device_properties);
+	vkGetPhysicalDeviceMemoryProperties(vulkan->physical_device, &vulkan->device_memory_properties);
+	vkGetDeviceQueue(vulkan->device, graphics_queue_index, 0, &vulkan->queue);
+	//vkGetDeviceQueue(vulkan.device, graphics_queue_index, 1, &vulkan.queue2);
 
 	// Since all depth formats may be optional, we need to find a suitable depth format to use
 	// Start with the highest precision packed format
@@ -955,27 +1034,27 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	for (auto& format : depth_formats)
 	{
 		VkFormatProperties format_props;
-		vkGetPhysicalDeviceFormatProperties(vulkan.physical_device, format, &format_props);
+		vkGetPhysicalDeviceFormatProperties(vulkan->physical_device, format, &format_props);
 		// Format must support depth stencil attachment for optimal tiling
 		if (format_props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
 		{
-			vulkan.depth_format = format;
+			vulkan->depth_format = format;
 			break;
 		}
 	}
 
-	assert(vulkan.depth_format != VK_FORMAT_UNDEFINED);
+	assert(vulkan->depth_format != VK_FORMAT_UNDEFINED);
 
 	VkSemaphoreCreateInfo semaphore_create_info = {};
 	semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	err = vkCreateSemaphore(vulkan.device, &semaphore_create_info, NULL, &vulkan.semaphore_present_complete);
+	err = vkCreateSemaphore(vulkan->device, &semaphore_create_info, NULL, &vulkan->semaphore_present_complete);
 	if (err)
 	{
 		tdDisplayError("vkCreateSemaphore", err);
 		return err;
 	}
 
-	err = vkCreateSemaphore(vulkan.device, &semaphore_create_info, NULL, &vulkan.semaphore_render_complete);
+	err = vkCreateSemaphore(vulkan->device, &semaphore_create_info, NULL, &vulkan->semaphore_render_complete);
 	if (err)
 	{
 		tdDisplayError("vkCreateSemaphore", err);
@@ -985,8 +1064,8 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	// Swap Chain
 	#define GET_INSTANCE_PROC_ADDR(entrypoint)								\
 	{                                                                       \
-		vulkan.fp##entrypoint = (PFN_vk##entrypoint) vkGetInstanceProcAddr(vulkan.instance, "vk"#entrypoint); \
-		if (vulkan.fp##entrypoint == NULL)                                         \
+		vulkan->fp##entrypoint = (PFN_vk##entrypoint) vkGetInstanceProcAddr(vulkan->instance, "vk"#entrypoint); \
+		if (vulkan->fp##entrypoint == NULL)                                         \
 		{																    \
 			err = VK_ERROR_INITIALIZATION_FAILED;							\
 			tdDisplayError("GET_INSTANCE_PROC_ADDR", err);					\
@@ -996,8 +1075,8 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 
 	#define GET_DEVICE_PROC_ADDR(entrypoint)								\
 	{                                                                       \
-		vulkan.fp##entrypoint = (PFN_vk##entrypoint) vkGetDeviceProcAddr(vulkan.device, "vk"#entrypoint);   \
-		if (vulkan.fp##entrypoint == NULL)                                         \
+		vulkan->fp##entrypoint = (PFN_vk##entrypoint) vkGetDeviceProcAddr(vulkan->device, "vk"#entrypoint);   \
+		if (vulkan->fp##entrypoint == NULL)                                         \
 		{																    \
 			err = VK_ERROR_INITIALIZATION_FAILED;							\
 			tdDisplayError("GET_INSTANCE_PROC_ADDR", err);					\
@@ -1020,7 +1099,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	surface_create_info.hinstance = hinst;
 	surface_create_info.hwnd = hwnd;
 
-	err = vkCreateWin32SurfaceKHR(vulkan.instance, &surface_create_info, NULL, &vulkan.surface);
+	err = vkCreateWin32SurfaceKHR(vulkan->instance, &surface_create_info, NULL, &vulkan->surface);
 	if (err)
 	{
 		tdDisplayError("vkCreateWin32SurfaceKHR", err);
@@ -1030,7 +1109,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	VkBool32* supports_present = (VkBool32*)malloc(sizeof(VkBool32) * queue_count);
 	for (u64 i = 0; i < queue_count; ++i)
 	{
-		vulkan.fpGetPhysicalDeviceSurfaceSupportKHR(vulkan.physical_device, i, vulkan.surface, supports_present + i);
+		vulkan->fpGetPhysicalDeviceSurfaceSupportKHR(vulkan->physical_device, i, vulkan->surface, supports_present + i);
 	}
 
 	// Search for a graphics and a present queue in the array of queue
@@ -1083,11 +1162,11 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 		return err;
 	}
 
-	vulkan.graphics_queue_node_index = graphics_queue_node_index;
+	vulkan->graphics_queue_node_index = graphics_queue_node_index;
 
 	// Get list of supported surface formats
 	uint32 format_count;
-	err = vulkan.fpGetPhysicalDeviceSurfaceFormatsKHR(vulkan.physical_device, vulkan.surface, &format_count, NULL);
+	err = vulkan->fpGetPhysicalDeviceSurfaceFormatsKHR(vulkan->physical_device, vulkan->surface, &format_count, NULL);
 	if (err)
 	{
 		tdDisplayError("fpGetPhysicalDeviceSurfaceFormatsKHR1", err);
@@ -1096,7 +1175,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	assert(format_count > 0);
 
 	VkSurfaceFormatKHR* surface_formats = (VkSurfaceFormatKHR*)malloc(sizeof(VkSurfaceFormatKHR) * format_count);
-	err = vulkan.fpGetPhysicalDeviceSurfaceFormatsKHR(vulkan.physical_device, vulkan.surface, &format_count, surface_formats);
+	err = vulkan->fpGetPhysicalDeviceSurfaceFormatsKHR(vulkan->physical_device, vulkan->surface, &format_count, surface_formats);
 	if (err)
 	{
 		tdDisplayError("fpGetPhysicalDeviceSurfaceFormatsKHR2", err);
@@ -1107,7 +1186,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	// there is no preferered format, so we assume VK_FORMAT_B8G8R8A8_UNORM
 	if ((format_count == 1) && (surface_formats[0].format == VK_FORMAT_UNDEFINED))
 	{
-		vulkan.color_format = VK_FORMAT_B8G8R8A8_UNORM;
+		vulkan->color_format = VK_FORMAT_B8G8R8A8_UNORM;
 	}
 	else
 	{
@@ -1115,16 +1194,16 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 		// If you need a specific format (e.g. SRGB) you'd need to
 		// iterate over the list of available surface format and
 		// check for it's presence
-		vulkan.color_format = surface_formats[0].format;
+		vulkan->color_format = surface_formats[0].format;
 	}
-	vulkan.color_space = surface_formats[0].colorSpace;
+	vulkan->color_space = surface_formats[0].colorSpace;
 
 	VkCommandPoolCreateInfo cmd_pool_info = {};
 	cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	cmd_pool_info.queueFamilyIndex = vulkan.graphics_queue_node_index;
+	cmd_pool_info.queueFamilyIndex = vulkan->graphics_queue_node_index;
 	cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-	err = vkCreateCommandPool(vulkan.device, &cmd_pool_info, NULL, &vulkan.command_pool);
+	err = vkCreateCommandPool(vulkan->device, &cmd_pool_info, NULL, &vulkan->command_pool);
 	if (err)
 	{
 		tdDisplayError("vkCreateCommandPool", err);
@@ -1133,11 +1212,11 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 
 	VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
 	command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	command_buffer_allocate_info.commandPool = vulkan.command_pool;
+	command_buffer_allocate_info.commandPool = vulkan->command_pool;
 	command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	command_buffer_allocate_info.commandBufferCount = 1;
 
-	err = vkAllocateCommandBuffers(vulkan.device, &command_buffer_allocate_info, &vulkan.setup_command_buffer);
+	err = vkAllocateCommandBuffers(vulkan->device, &command_buffer_allocate_info, &vulkan->setup_command_buffer);
 	if (err)
 	{
 		tdDisplayError("vkAllocateCommandBuffers", err);
@@ -1147,27 +1226,27 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	VkCommandBufferBeginInfo begin_info = {};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-	err = vkBeginCommandBuffer(vulkan.setup_command_buffer, &begin_info);
+	err = vkBeginCommandBuffer(vulkan->setup_command_buffer, &begin_info);
 	if (err)
 	{
 		tdDisplayError("vkBeginCommandBuffer(Setup)", err);
 		return err;
 	}
 
-	err = InitSwapChain(vulkan, &vulkan.surface_width, &vulkan.surface_height);
+	err = InitSwapChain(vulkan, &vulkan->surface_width, &vulkan->surface_height);
 	if (err)
 	{
 		return err;
 	}
 
-	for (u64 i = 0; i < vulkan.frame_count; ++i)
+	for (u64 i = 0; i < vulkan->frame_count; ++i)
 	{
 		command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		command_buffer_allocate_info.commandPool = vulkan.command_pool;
+		command_buffer_allocate_info.commandPool = vulkan->command_pool;
 		command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		command_buffer_allocate_info.commandBufferCount = 1;
 
-		err = vkAllocateCommandBuffers(vulkan.device, &command_buffer_allocate_info, &vulkan.frames[i].draw_command_buffer);
+		err = vkAllocateCommandBuffers(vulkan->device, &command_buffer_allocate_info, &vulkan->frames[i].draw_command_buffer);
 		if (err)
 		{
 			tdDisplayError("vkAllocateCommandBuffers(draw)", err);
@@ -1176,14 +1255,14 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	}
 
 	// Command buffers for submitting present barriers
-	err = vkAllocateCommandBuffers(vulkan.device, &command_buffer_allocate_info, &vulkan.pre_present_command_buffer);
+	err = vkAllocateCommandBuffers(vulkan->device, &command_buffer_allocate_info, &vulkan->pre_present_command_buffer);
 	if (err)
 	{
 		tdDisplayError("vkAllocateCommandBuffers(pre)", err);
 		return err;
 	}
 
-	err = vkAllocateCommandBuffers(vulkan.device, &command_buffer_allocate_info, &vulkan.post_present_command_buffer);
+	err = vkAllocateCommandBuffers(vulkan->device, &command_buffer_allocate_info, &vulkan->post_present_command_buffer);
 	if (err)
 	{
 		tdDisplayError("vkAllocateCommandBuffers(post)", err);
@@ -1194,8 +1273,8 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	VkImageCreateInfo image_create_info = {};
 	image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	image_create_info.imageType = VK_IMAGE_TYPE_2D;
-	image_create_info.format = vulkan.depth_format;
-	image_create_info.extent = { vulkan.surface_width, vulkan.surface_height, 1 };
+	image_create_info.format = vulkan->depth_format;
+	image_create_info.extent = { vulkan->surface_width, vulkan->surface_height, 1 };
 	image_create_info.mipLevels = 1;
 	image_create_info.arrayLayers = 1;
 	image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1205,7 +1284,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	VkImageViewCreateInfo depth_stencil_view_info = {};
 	depth_stencil_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	depth_stencil_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	depth_stencil_view_info.format = vulkan.depth_format;
+	depth_stencil_view_info.format = vulkan->depth_format;
 	depth_stencil_view_info.subresourceRange = {};
 	depth_stencil_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 	depth_stencil_view_info.subresourceRange.baseMipLevel = 0;
@@ -1213,7 +1292,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	depth_stencil_view_info.subresourceRange.baseArrayLayer = 0;
 	depth_stencil_view_info.subresourceRange.layerCount = 1;
 
-	err = vkCreateImage(vulkan.device, &image_create_info, NULL, &vulkan.depth_stencil_image);
+	err = vkCreateImage(vulkan->device, &image_create_info, NULL, &vulkan->depth_stencil_image);
 	if (err)
 	{
 		tdDisplayError("vkCreateImage(depth)", err);
@@ -1221,7 +1300,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	}
 
 	VkMemoryRequirements mem_reqs;
-	vkGetImageMemoryRequirements(vulkan.device, vulkan.depth_stencil_image, &mem_reqs);
+	vkGetImageMemoryRequirements(vulkan->device, vulkan->depth_stencil_image, &mem_reqs);
 
 	VkMemoryAllocateInfo mem_alloc_info = {};
 	mem_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -1233,14 +1312,14 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 		return err;
 	}
 
-	err = vkAllocateMemory(vulkan.device, &mem_alloc_info, NULL, &vulkan.depth_stencil_mem);
+	err = vkAllocateMemory(vulkan->device, &mem_alloc_info, NULL, &vulkan->depth_stencil_mem);
 	if (err)
 	{
 		tdDisplayError("vkAllocateMemory(depth)", err);
 		return err;
 	}
 
-	err = vkBindImageMemory(vulkan.device, vulkan.depth_stencil_image, vulkan.depth_stencil_mem, 0);
+	err = vkBindImageMemory(vulkan->device, vulkan->depth_stencil_image, vulkan->depth_stencil_mem, 0);
 	if (err)
 	{
 		tdDisplayError("vkBindImageMemory(depth)", err);
@@ -1253,10 +1332,10 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	subresource_range.levelCount = 1;
 	subresource_range.layerCount = 1;
 
-	tdVkSetImageLayout(vulkan.setup_command_buffer, vulkan.depth_stencil_image, subresource_range.aspectMask, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, subresource_range);
+	tdVkSetImageLayout(vulkan->setup_command_buffer, vulkan->depth_stencil_image, subresource_range.aspectMask, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, subresource_range);
 
-	depth_stencil_view_info.image = vulkan.depth_stencil_image;
-	err = vkCreateImageView(vulkan.device, &depth_stencil_view_info, NULL, &vulkan.depth_stencil_view);
+	depth_stencil_view_info.image = vulkan->depth_stencil_image;
+	err = vkCreateImageView(vulkan->device, &depth_stencil_view_info, NULL, &vulkan->depth_stencil_view);
 	if (err)
 	{
 		tdDisplayError("vkBindImageMemory(depth)", err);
@@ -1264,7 +1343,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	}
 
 	VkAttachmentDescription attachments[2];
-	attachments[0].format = vulkan.color_format;
+	attachments[0].format = vulkan->color_format;
 	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
 	attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1273,7 +1352,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	attachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	attachments[1].format = vulkan.depth_format;
+	attachments[1].format = vulkan->depth_format;
 	attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
 	attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -1302,7 +1381,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	render_pass_info.subpassCount = 1;
 	render_pass_info.pSubpasses = &subpass;
 
-	err = vkCreateRenderPass(vulkan.device, &render_pass_info, NULL, &vulkan.render_pass);
+	err = vkCreateRenderPass(vulkan->device, &render_pass_info, NULL, &vulkan->render_pass);
 	if (err)
 	{
 		tdDisplayError("vkCreateRenderPass", err);
@@ -1312,7 +1391,7 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	VkPipelineCacheCreateInfo pipeline_cache_info = {};
 	pipeline_cache_info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 
-	err = vkCreatePipelineCache(vulkan.device, &pipeline_cache_info, NULL, &vulkan.pipeline_cache);
+	err = vkCreatePipelineCache(vulkan->device, &pipeline_cache_info, NULL, &vulkan->pipeline_cache);
 	if (err)
 	{
 		tdDisplayError("vkCreatePipelineCache", err);
@@ -1321,38 +1400,38 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 
 	// Frame buffers
 	VkImageView image_attachments[2];
-	image_attachments[1] = vulkan.depth_stencil_view;
+	image_attachments[1] = vulkan->depth_stencil_view;
 
 	VkFramebufferCreateInfo frame_buffer_info = {};
 	frame_buffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	frame_buffer_info.renderPass = vulkan.render_pass;
+	frame_buffer_info.renderPass = vulkan->render_pass;
 	frame_buffer_info.attachmentCount = 2;
 	frame_buffer_info.pAttachments = image_attachments;
-	frame_buffer_info.width = vulkan.surface_width;
-	frame_buffer_info.height = vulkan.surface_height;
+	frame_buffer_info.width = vulkan->surface_width;
+	frame_buffer_info.height = vulkan->surface_height;
 	frame_buffer_info.layers = 1;
 
 	// Create frame buffers for every swap chain image
-	for (u64 i = 0; i < vulkan.frame_count; ++i)
+	for (u64 i = 0; i < vulkan->frame_count; ++i)
 	{
 		VkFence fence = tdVkCreateFence(vulkan, VK_FENCE_CREATE_SIGNALED_BIT);
-		assert(vkGetFenceStatus(vulkan.device, fence) == VK_SUCCESS);
-		vulkan.frames[i].fence = fence;
+		assert(vkGetFenceStatus(vulkan->device, fence) == VK_SUCCESS);
+		vulkan->frames[i].fence = fence;
 
-		image_attachments[0] = vulkan.frames[i].image_view;
+		image_attachments[0] = vulkan->frames[i].image_view;
 
-		err = vkCreateFramebuffer(vulkan.device, &frame_buffer_info, NULL, &vulkan.frames[i].frame_buffer);
+		err = vkCreateFramebuffer(vulkan->device, &frame_buffer_info, NULL, &vulkan->frames[i].frame_buffer);
 		if (err)
 		{
 			tdDisplayError("vkCreateFramebuffer", err);
 			return err;
 		}
 
-		vulkan.frames[i].free_resource_mutex = CreateMutex(0, false, 0);
+		vulkan->frames[i].free_resource_mutex = CreateMutex(0, false, 0);
 
 	}
 
-	err = vkEndCommandBuffer(vulkan.setup_command_buffer);
+	err = vkEndCommandBuffer(vulkan->setup_command_buffer);
 	if (err)
 	{
 		tdDisplayError("vkEndCommandBuffer", err);
@@ -1362,31 +1441,31 @@ VkResult tdVkInitVulkan(TdVkInstance& vulkan, const char* name, bool enable_vali
 	VkSubmitInfo submit_info = {};
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers = &vulkan.setup_command_buffer;
+	submit_info.pCommandBuffers = &vulkan->setup_command_buffer;
 
-	err = vkQueueSubmit(vulkan.queue, 1, &submit_info, VK_NULL_HANDLE);
+	err = vkQueueSubmit(vulkan->queue, 1, &submit_info, VK_NULL_HANDLE);
 	if (err)
 	{
 		tdDisplayError("vkQueueSubmit", err);
 		return err;
 	}
 
-	err = vkQueueWaitIdle(vulkan.queue);
+	err = vkQueueWaitIdle(vulkan->queue);
 	if (err)
 	{
 		tdDisplayError("vkQueueWaitIdle", err);
 		return err;
 	}
 
-	vkFreeCommandBuffers(vulkan.device, vulkan.command_pool, 1, &vulkan.setup_command_buffer);
-	vulkan.setup_command_buffer = VK_NULL_HANDLE;
+	vkFreeCommandBuffers(vulkan->device, vulkan->command_pool, 1, &vulkan->setup_command_buffer);
+	vulkan->setup_command_buffer = VK_NULL_HANDLE;
 
 	free(physical_devices);
 	free(queue_props);
 	free(supports_present);
 	free(surface_formats);
 
-	vulkan.is_initialized = true;
+	vulkan->is_initialized = true;
 	return VK_SUCCESS;
 }
 

@@ -7,7 +7,7 @@ uint64 TdPoolInt::GetNext()
 	if (next == items.count)
 	{
 		tdArrayAdd(items, next);
-		if (next == 0) tdArrayAdd(items,++ next);
+		if (next == 0) tdArrayAdd(items, ++next);
 		return next++;
 	}
 
@@ -49,7 +49,7 @@ void TdPoolInt::Release(uint64 id)
 bool TdPoolHandle::IsExists(uint64 id) const
 { 
 	uint32 i = id & 0xffffffff;
-	return (i < items.count ? (items[i] << 32) != 0 : false);
+	return (i < (uint32)items.count ? (items[i] << 32) != 0 : false);
 }
 
 uint64 TdPoolHandle::GetNext()
@@ -94,7 +94,7 @@ uint64 TdPoolHandle::GetNext()
 void TdPoolHandle::Release(uint64 id)
 {
 	uint32 i = id & 0xffffffff;
-	if (i < items.count)
+	if (i < (uint32)items.count)
 	{
 		tdArraySetValue(items, i, id & 0xffffffff00000000L);
 		if (i < next) next = i;

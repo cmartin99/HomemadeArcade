@@ -4,11 +4,15 @@
 
 namespace eng {
 
+const double M_PI_2 = 1.57079632679489661923132169163975144;
+
 std::string tdErrorString(VkResult);
 char* tdLastErrorAsString(char *result_buffer, size_t result_buffer_len, bool concatenate = false);
+void tdDisplayMessage(const char* msg);
 void tdDisplayError(const char* msg);
 void tdDisplayError(const char* msg, HRESULT);
 void tdDisplayError(const char* msg, VkResult);
+char *tdReadAllTextFileAndNullTerminate(const char *filename);
 char* tdReadBinaryFile(const char* filename, size_t*);
 char *tdReadBinaryFile(const char *filename, TdMemoryArena &, size_t *);
 bool tdWriteBinaryFile(const char *filename, void* data, size_t cnt, bool append = false);
@@ -19,6 +23,10 @@ ALWAYS_INLINE bool tdMouseIsLeftClick(const TdMouseState& mouse) { return !mouse
 ALWAYS_INLINE bool tdMouseIsLeftPress(const TdMouseState& mouse) { return mouse.mb_left.button_ended_down && mouse.mb_left.half_transition_count; }
 ALWAYS_INLINE bool tdMouseIsRightClick(const TdMouseState& mouse) { return !mouse.mb_right.button_ended_down && mouse.mb_right.half_transition_count; }
 ALWAYS_INLINE bool tdMouseIsRightPress(const TdMouseState& mouse) { return mouse.mb_left.button_ended_down && mouse.mb_left.half_transition_count; }
+ALWAYS_INLINE bool tdKeyboardIsKeyPressed(const TdKeyboardState& keyboard, int32 key) { return keyboard.key_state[key] > 0; }
+ALWAYS_INLINE bool tdKeyboardIsKeyReleased(const TdKeyboardState& keyboard, int32 key) { return !keyboard.key_state[key]; }
+ALWAYS_INLINE bool tdKeyboardIsKeyPressedNew(const TdKeyboardState& keyboard, int32 key) { return keyboard.key_state[key] > 0 && !keyboard.prev_state[key]; }
+ALWAYS_INLINE bool tdKeyboardIsKeyReleasedNew(const TdKeyboardState& keyboard, int32 key) { return !keyboard.key_state[key] && keyboard.prev_state[key] > 0; }
 float tdWrapRadian(float angle);
 void tdVector2MinMax(Vector2&, Vector2&);
 void tdVector3MinMax(Vector3&, Vector3&);
@@ -28,6 +36,33 @@ void tdClamp(TdPoint3 & p, const TdPoint3 &min, const TdPoint3 &max);
 void tdClamp(Vector2 & p, const Vector2 &min, const Vector2 &max);
 void tdClamp(Vector3 & p, const Vector3 &min, const Vector3 &max);
 int64 tdHexToInt(const char *hex);
+
+ALWAYS_INLINE float tdAngleFromDir(Vector2 dir) // dir is not normalized
+{
+	Vector2 norm_dir = normalize(dir);
+	float angle = -atan2(norm_dir.y, norm_dir.x) - M_PI_2;
+	return angle;
+}
+
+ALWAYS_INLINE float tdAngleFromNormDir(Vector2 norm_dir)
+{
+	float angle = -atan2(norm_dir.y, norm_dir.x) - M_PI_2;
+	return angle;
+}
+
+ALWAYS_INLINE Vector2 tdRotate(Vector2 pos, Vector2 about, float angle)
+{
+	//x0+(x−x0)cosϕ+(y−y0)sinϕ
+	//y0−(x−x0)sinϕ+(y−y0)cosϕ
+	float cos_a = cos(angle);
+	float sin_a = sin(angle);
+	float cx = pos.x - about.x;
+	float cy = pos.y - about.y;
+	Vector2 result;
+	result.x = about.x + cx * cos_a + cy * sin_a;
+	result.y = about.y - cx * sin_a + cy * cos_a;
+	return result;
+}
 
 ALWAYS_INLINE float tdLerp(float value1, float value2, float amount)
 {
@@ -52,7 +87,7 @@ ALWAYS_INLINE Vector3 tdLerp(Vector3 value1, Vector3 value2, float amount)
 }
 
 ALWAYS_INLINE Vector3 tdBoundingBoxCenter(const TdBoundingBox& box) { return (box.max - box.min) * 0.5f + box.min; }
-ALWAYS_INLINE TdPoint2 tdRectCenter(const TdRect& outer, int w, int h)
+ALWAYS_INLINE TdPoint2 tdRectCenter(const TdRect& outer, int w = 0, int h = 0)
 {
 	TdPoint2 r;
 	r.x = (outer.w - w) / 2 + outer.x;
@@ -181,6 +216,40 @@ ALWAYS_INLINE bool tdIntersect(Vector2 p, TdRect r)
 ALWAYS_INLINE bool tdIntersect(TdPoint2 p, TdRect r)
 {
 	return p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
+}
+
+ALWAYS_INLINE bool tdIntersect(TdRect r1, TdRect r2)
+{
+	return r2.x < r1.x + r1.w && r2.y < r1.y + r1.h &&
+		   r2.x + r2.w > r1.x && r2.y + r2.h > r1.y;
+}
+
+ALWAYS_INLINE bool tdIntersect(Vector4 r1, Vector4 r2)
+{
+	return r2.x < r1.x + r1.z && r2.y < r1.y + r1.w &&
+		   r2.x + r2.z > r1.x && r2.y + r2.w > r1.y;
+}
+
+ALWAYS_INLINE bool tdIntersectExtent(Vector4 r1, Vector4 r2)
+{
+	return r2.x <= r1.z && r2.y <= r1.w && r2.z >= r1.x && r2.w >= r1.y;
+}
+
+ALWAYS_INLINE bool tdIntersectExtent(Vector2 p, Vector4 r)
+{
+	return p.x >= r.x && p.x <= r.z && p.y >= r.y && p.y <= r.w;
+}
+
+template<size_t size>
+void strcpy_safe(char (&dest)[size], const char* src)
+{
+	for (size_t i = 0; i < size; ++i)
+	{
+		dest[i] = *src;
+		if (!(*src)) return;
+		++src;
+	}
+    dest[size - 1] = 0;
 }
 
 WCHAR* swprintf_comma_core(WCHAR* buff, int len);

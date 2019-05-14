@@ -1,7 +1,9 @@
 #include "TdEngine.h"
 #include "TdPool.cpp"
+#include "TdPath.cpp"
 #include "TdHashTable.cpp"
 #include "TdHelpers.cpp"
+#include "TdQuadTree.cpp"
 #include "TdRandom.cpp"
 #include "TdThread.cpp"
 #include "TdEntity.cpp"
@@ -16,6 +18,7 @@
 #include "TdGui.cpp"
 #include "TdGuiIm.cpp"
 #include "TdJSonParser.cpp"
+#include "TdPreprocessor.cpp"
 
 namespace eng {
 

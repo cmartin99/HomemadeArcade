@@ -6,23 +6,18 @@ namespace eng {
 template <typename T>
 struct TdArray
 {
-	uint32 count;
-	uint32 cap;
+	int32 count;
+	int32 cap;
 	T* ptr;
 
-	T& operator[](uint32 i) { assert(i < count); return ptr[i]; }
-	const T& operator[](uint32 i) const { assert(i < count); return ptr[i]; }
+	T& operator[](int32 i) { assert(i < count); return ptr[i]; }
+	const T& operator[](int32 i) const { assert(i < count); return ptr[i]; }
 };
 
 template<typename T>
-void tdArrayInit(TdArray<T>& a, uint32 capacity, bool zero_mem = false)
+void tdArrayInit(TdArray<T>& a, TdMemoryArena& arena, int32 capacity, bool zero_mem = false)
 {
-	tdArrayInit(a, eng_arena, capacity, zero_mem);
-}
-
-template<typename T>
-void tdArrayInit(TdArray<T>& a, TdMemoryArena& arena, uint32 capacity, bool zero_mem = false)
-{
+	assert(capacity > 0);
 	a.ptr = tdMalloc<T>(arena, capacity);
 	a.cap = capacity;
 	a.count = 0;
@@ -30,13 +25,45 @@ void tdArrayInit(TdArray<T>& a, TdMemoryArena& arena, uint32 capacity, bool zero
 }
 
 template<typename T>
-uint32 tdArrayGetIndex(TdArray<T>& a, T t)
+void tdArrayInit(TdArray<T>& a, int32 capacity, bool zero_mem = false)
 {
-	for (uint32 i = 0; i < a.count; ++i)
+	tdArrayInit(a, eng_arena, capacity, zero_mem);
+}
+
+template<typename T>
+void tdArrayCopy(TdArray<T>& a, const TdArray<T>& src)
+{
+	assert(a.ptr);
+	assert(src.cap > 0);
+	assert(src.count >= 0 && src.count <= src.cap);
+	a.cap = src.cap;
+	a.count = src.count;
+	memcpy(a.ptr, src.ptr, sizeof(T) * a.count);
+}
+
+template<typename T>
+void tdArrayInit(TdArray<T>& a, TdMemoryArena& arena, const TdArray<T>& src)
+{
+	assert(a.ptr);
+	a.ptr = tdMalloc<T>(arena, src.cap);
+	tdArrayCopy(a, src);
+}
+
+template<typename T>
+int32 tdArrayGetIndex(TdArray<T>& a, T t)
+{
+	assert(a.ptr);
+	for (int32 i = 0; i < a.count; ++i)
 	{
 		if (a.ptr[i] == t) return i;
 	}
-	return UINT32_MAX;
+	return -1;
+}
+
+template<typename T>
+bool tdArrayContains(TdArray<T>& a, T t)
+{
+	return tdArrayGetIndex(a, t) >= 0;
 }
 
 template<typename T>
@@ -48,19 +75,31 @@ void tdArrayAdd(TdArray<T>& a, T t)
 }
 
 template<typename T>
-void tdArrayInsert(TdArray<T>& a, T t, uint32 i)
+void tdArrayAddRange(TdArray<T>& a, T* t, int32 n)
+{
+	assert(a.ptr);
+	assert(t);
+	assert(n > 0);
+	assert(a.count + n - 1 < a.cap);
+	memcpy(a.ptr + a.count, t, n * sizeof(T));
+	a.count += n;
+}
+
+template<typename T>
+void tdArrayInsert(TdArray<T>& a, T t, int32 i)
 {
 	assert(a.ptr);
 	assert(a.count < a.cap);
-	assert(i >= 0 && i < a.count);
-	memmove(a.ptr + i, a.ptr + i + 1, sizeof(T));
+	assert(i >= 0 && i <= a.count);
+	memmove(a.ptr + i + 1, a.ptr + i, sizeof(T) * a.count - i);
 	a.ptr[i] = t;
 	++a.count;
 }
 
 template<typename T>
-void tdArrayRemove(TdArray<T>& a, uint32 i, uint32 count = 1)
+void tdArrayRemoveAt(TdArray<T>& a, int32 i, int32 count = 1)
 {
+	assert(a.ptr);
 	assert(i >= 0);
 	assert(count > 0);
 
@@ -81,8 +120,29 @@ void tdArrayRemove(TdArray<T>& a, uint32 i, uint32 count = 1)
 template<typename T>
 void tdArrayRemoveRef(TdArray<T>& a, T t)
 {
-	uint32 i = tdArrayGetIndex(a, t);
-	if (i != UINT32_MAX) tdArrayRemove(a, i);
+	int32 i = tdArrayGetIndex(a, t);
+	if (i >= 0) tdArrayRemoveAt(a, i);
+}
+
+template<typename T>
+void tdArrayRemoveAtSwapEnd(TdArray<T>& a, int32 i, int32 count = 1)
+{
+	assert(a.ptr);
+	assert(i >= 0);
+	assert(count > 0);
+
+	if (a.count > 0 && i < a.count)
+	{
+		if (i + count >= a.count)
+		{
+			a.count = i;
+		}
+		else
+		{
+			memmove(a.ptr + i, a.ptr + a.count - count, count * sizeof(T));
+			a.count -= count;
+		}
+	}
 }
 
 template<typename T>
@@ -96,7 +156,7 @@ T* tdArrayPush(TdArray<T>& a)
 }
 
 template<typename T>
-void tdArraySetValue(TdArray<T>& a, uint32 i, T val)
+void tdArraySetValue(TdArray<T>& a, int32 i, T val)
 {
 	assert(a.ptr);
 	assert(i < a.count);
@@ -125,6 +185,30 @@ void tdArrayClear(TdArray<T>& a)
 	a.count = 0;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+template<typename T>
+class TdArraySmallImpl
+{
+	T *begin, *end;
+	size_t cap;
+protected:
+  	TdArraySmallImpl(T *begin, T *end, size_t cap);
+public:
+	iterator Begin() { return begin;}
+	iterator End() { return end;}
+	void PushBack(const T &element);
+	void PopBack();
+};
+
+template<typename T, int N>
+class TdArraySmall : public TdSmallArrayImpl
+{
+	char buffer[sizeof(T) * N];
+public:
+	TdSmallArray() : TdSmallArrayImpl((T*)buffer, (T*)buffer, N) {}
+};
+*/
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
@@ -202,7 +286,7 @@ void TdArray1<T>::Add(TdArray1<T>& src)
 }
 
 template<typename T>
-void TdArray1<T>::PushCount(int inc = 1)
+void TdArray1<T>::PushCount(int inc)
 {
 	uint64 cap = capacity & 0x7fffffffffffffff;
 	if (count + inc >= cap) Reserve(cap + inc + cap / 2, (capacity >> 63) > 0);
