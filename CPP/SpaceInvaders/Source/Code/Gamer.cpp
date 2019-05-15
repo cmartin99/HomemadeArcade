@@ -1,6 +1,36 @@
 
+TdRect GetGameScreenRect(const Gamer* gamer)
+{
+	assert(gamer);
+	return {0, 0, (int32)gamer->viewport.width, (int32)gamer->viewport.height };
+}
+
 void HandleMouseWheel(int16)
 {
+}
+
+void HandleGamerInput(Gamer* gamer)
+{
+	assert(gamer);
+	auto app_state = GetAppState();
+	TdInputState* input = &app_state->input;
+
+	// Set gamepad state
+	memcpy(&app_state->prev_gamepad, &input->gamepad, sizeof(TdGamePadState));
+	XINPUT_STATE xi_state;
+	XInputGetState(0, &xi_state);
+	memclear<TdGamePadState>(&input->gamepad);
+	ConvertXInput(input->gamepad, app_state->prev_gamepad, xi_state.Gamepad);
+
+	if (gamer->screen_mode == sm_Gameplay)
+	{
+		Sim* sim = &app_state->sim;
+		Player* player = gamer->player;
+		assert(player);
+		player->ship.pos.x += input->gamepad.thumb_left.x * sim->seconds * player_ship_speed.x;
+		//instance->ship->pos.x = tdClamp(instance->ship->pos.x, 0.f, player->viewport.width - GameConsts::defender_size.x);
+		//if (IsButtonDownNew(input.gamepad.a)) {PlayerFireBullet();}
+	}
 }
 
 Gamer* GamerNew()

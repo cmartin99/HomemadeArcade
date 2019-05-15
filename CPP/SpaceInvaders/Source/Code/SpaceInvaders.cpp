@@ -26,11 +26,17 @@ void RunOneFrame()
 		app_state->scratch_arena.used = 0;
 
 		Sim *sim = &app_state->sim;
-		if (sim->is_active && !sim->is_paused)
+		if (sim->is_active)
 		{
-			sim->seconds = app_state->seconds * sim->sim_speed;
-			sim->total_seconds += sim->seconds;
-			UpdateSim(sim);
+			HandleGamerInput(app_state->gamers.ptr);
+			assert(app_state->gamers.count > 0);
+
+			if (!sim->is_paused)
+			{
+				sim->seconds = app_state->seconds * sim->sim_speed;
+				sim->total_seconds += sim->seconds;
+				UpdateSim(sim);
+			}
 		}
 
 		RenderGame();

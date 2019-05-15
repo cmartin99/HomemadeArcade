@@ -11,8 +11,9 @@ static char commas4[20];
 static char commas5[20];
 static char commas6[20];
 static int last_debug_y;
+static const Vector2 player_ship_speed = {250, 0};
 
-struct AppConsts
+const static struct AppConsts
 {
 	static const int32 save_version = 100000;
 };
@@ -44,12 +45,19 @@ enum ScreenMode
 	sm_Gameplay,
 };
 
+struct PlayerShip
+{
+	Vector2 pos;
+	TdPoint2 size;
+};
+
 struct Gamer;
 
 struct Player
 {
 	uint16 type;
 	Gamer* gamer;
+	PlayerShip ship;
 };
 
 struct Gamer
@@ -93,6 +101,7 @@ struct AppState
 	TdInputState input;
 	int32 rng_seed, rng_inc;
 	time_t rng_time;
+	TdGamePadState prev_gamepad;
 	TdMemoryArena perm_arena;
 	TdMemoryArena main_arena;
 	TdMemoryArena scratch_arena;

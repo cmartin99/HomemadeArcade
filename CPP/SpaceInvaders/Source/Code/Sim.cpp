@@ -20,6 +20,8 @@ void SimNew()
 	tdRandomSeed(&sim->rng, seed, inc);
 
 	tdArrayInit(sim->players, app_state->main_arena, 1);
+
+	PlayerNew(sim, app_state->gamers.ptr);
 }
 
 void SimEnd()

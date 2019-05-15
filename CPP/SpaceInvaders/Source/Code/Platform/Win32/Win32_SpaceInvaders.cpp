@@ -3,6 +3,7 @@
 #include <windowsx.h>
 #include <locale>
 #include "vulkan.h"
+#include "xinput.h"
 #include "TdEngine.h"
 #include "ForwardDecls.h"
 
@@ -133,7 +134,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	int screen_height = GetSystemMetrics(SM_CYSCREEN);
 	bool fullscreen = false;
 
-	DWORD dwStyle = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
+	DWORD dwStyle = fullscreen ? WS_POPUP : WS_POPUP;// : WS_OVERLAPPEDWINDOW;
 	dwStyle |= WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 
 	RECT rect;
