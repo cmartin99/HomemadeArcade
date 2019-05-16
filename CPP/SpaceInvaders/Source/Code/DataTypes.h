@@ -45,19 +45,12 @@ enum ScreenMode
 	sm_Gameplay,
 };
 
-struct PlayerShip
-{
-	Vector2 pos;
-	TdPoint2 size;
-};
-
 struct Gamer;
 
 struct Player
 {
 	uint16 type;
 	Gamer* gamer;
-	PlayerShip ship;
 };
 
 struct Gamer

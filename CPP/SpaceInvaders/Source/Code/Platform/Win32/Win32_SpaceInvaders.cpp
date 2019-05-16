@@ -129,12 +129,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	RegisterClass(&win_class);
 
-	int width = 1280, height = 720;
+	int width = 1200, height = 640;
 	int screen_width = GetSystemMetrics(SM_CXSCREEN);
 	int screen_height = GetSystemMetrics(SM_CYSCREEN);
 	bool fullscreen = false;
 
-	DWORD dwStyle = fullscreen ? WS_POPUP : WS_POPUP;// : WS_OVERLAPPEDWINDOW;
+	DWORD dwStyle = fullscreen ? WS_POPUP : WS_OVERLAPPEDWINDOW;
 	dwStyle |= WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 
 	RECT rect;

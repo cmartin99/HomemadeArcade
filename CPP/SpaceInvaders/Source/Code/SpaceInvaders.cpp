@@ -28,8 +28,8 @@ void RunOneFrame()
 		Sim *sim = &app_state->sim;
 		if (sim->is_active)
 		{
-			HandleGamerInput(app_state->gamers.ptr);
 			assert(app_state->gamers.count > 0);
+			HandleGamerInput(app_state->gamers.ptr);
 
 			if (!sim->is_paused)
 			{

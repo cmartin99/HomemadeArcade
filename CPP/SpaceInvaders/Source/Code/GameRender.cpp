@@ -71,7 +71,7 @@ void RenderDebug(const Gamer* gamer)
 	Sim* sim = &app_state->sim;
 	int y = last_debug_y + 4;
 
-	int len = sprintf(temp_text, "fps: %d | mem (bytes): eng %s (%.1f), perm %s (%.1f), main %s (%.1f), scratch %s (%.1f), total %d | draws: %s",
+	int len = sprintf(temp_text, "fps: %4d | mem (bytes): eng %s (%.1f), perm %s (%.1f), main %s (%.1f), scratch %s (%.1f), total %d | draws: %s",
 			(int)(1 / app_state->seconds),
 			sprintf_comma(eng_arena.used, commas1), (float)eng_arena.used / eng_arena.size * 100.0,
 			sprintf_comma(app_state->perm_arena.used, commas2), (float)app_state->perm_arena.used / app_state->perm_arena.size * 100.0,
@@ -91,14 +91,14 @@ void RenderDebug(const Gamer* gamer)
 	last_debug_y = y;
 }
 
-void RenderSim(const Sim* sim, Gamer* gamer, const TdRect& rect)
+void RenderSim(Sim* sim, Gamer* gamer, const TdRect& rect)
 {
 	TIMED_BLOCK(RenderSim);
 	assert(sim);
 	assert(gamer);
 	auto app_state = GetAppState();
+	float elapsed = sim->seconds;
 	TdSpriteBatch* sprite_batch = app_state->renderer.sprite_batch;
-
 }
 
 VkResult RenderGame()
@@ -162,12 +162,10 @@ VkResult RenderGame()
 
 	if (app_state->sim.is_active)
 	{
-		TdRect rect = {0, 0, (int32)gamer->viewport.width, (int32)gamer->viewport.height};
-
 		switch (gamer->screen_mode)
 		{			
 			case sm_Gameplay:
-				RenderSim(&app_state->sim, gamer, rect);
+				RenderSim(&app_state->sim, gamer, GetViewportRect(gamer));
 				break;
 		}
 	}

@@ -1,5 +1,5 @@
 
-TdRect GetGameScreenRect(const Gamer* gamer)
+TdRect GetViewportRect(const Gamer* gamer)
 {
 	assert(gamer);
 	return {0, 0, (int32)gamer->viewport.width, (int32)gamer->viewport.height };
@@ -27,9 +27,6 @@ void HandleGamerInput(Gamer* gamer)
 		Sim* sim = &app_state->sim;
 		Player* player = gamer->player;
 		assert(player);
-		player->ship.pos.x += input->gamepad.thumb_left.x * sim->seconds * player_ship_speed.x;
-		//instance->ship->pos.x = tdClamp(instance->ship->pos.x, 0.f, player->viewport.width - GameConsts::defender_size.x);
-		//if (IsButtonDownNew(input.gamepad.a)) {PlayerFireBullet();}
 	}
 }
 
