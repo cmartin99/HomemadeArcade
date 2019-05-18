@@ -14,8 +14,8 @@ namespace SpaceInvaders {
 AppMemory* memory = nullptr;
 
 #include "ImGuiApp.cpp"
-#include "Gamer.cpp"
 #include "Sim.cpp"
+#include "Gamer.cpp"
 #include "GameRender.cpp"
 
 void RunOneFrame()
