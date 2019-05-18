@@ -61,12 +61,14 @@ bool ImGuiUpdateTitleMenu(Gamer* gamer)
 
 	if (DoMenuItem(gui, Gui::NewGame, rect))
 	{
-		gamer->screen_mode = sm_Gameplay;
+		SimNew();
+		gamer->screen_mode = sm_Gameplay;		
 		return true;
 	}
 	rect.y += rect.h + ygap;
 	if (DoMenuItem(gui, Gui::Exit, rect))
 	{
+		SimEnd();
 		CloseApplication();
 		return true;
 	}

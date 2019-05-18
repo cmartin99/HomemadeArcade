@@ -3,6 +3,7 @@
 #include <windowsx.h>
 #include <locale>
 #include "vulkan.h"
+#include "xinput.h"
 #include "TdEngine.h"
 #include "ForwardDecls.h"
 

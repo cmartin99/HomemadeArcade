@@ -1,9 +1,6 @@
 
 void UpdateSim(Sim* sim)
 {
-	TIMED_BLOCK(UpdateSim);
-	auto app_state = GetAppState();
-	float elapsed = sim->seconds;
 }
 
 void SimNew()
@@ -20,6 +17,7 @@ void SimNew()
 	tdRandomSeed(&sim->rng, seed, inc);
 
 	tdArrayInit(sim->players, app_state->main_arena, 1);
+	PlayerNew(sim, app_state->gamers.ptr);
 }
 
 void SimEnd()

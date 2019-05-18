@@ -93,6 +93,7 @@ struct AppState
 	TdInputState input;
 	int32 rng_seed, rng_inc;
 	time_t rng_time;
+	TdGamePadState prev_gamepad;
 	TdMemoryArena perm_arena;
 	TdMemoryArena main_arena;
 	TdMemoryArena scratch_arena;
