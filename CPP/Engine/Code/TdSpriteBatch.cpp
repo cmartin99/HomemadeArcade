@@ -418,7 +418,7 @@ void tdVkDrawBoxCore(TdSpriteBatch* sprite_batch, float x, float y, float w, flo
 	TdSpriteBatch::VertexSprite* pv = sprite_batch->vb_cpu_mem + batch->vertex_offset + batch->vertex_count;
 	TdSpriteBatch::VertexSprite* first_pv = pv;
 
-	float u0 = -1, u1 = -1;
+	float u0 = 0, u1 = 1;
 	float v0 = 0, v1 = 1;
 	float type = 0;
 
@@ -434,11 +434,6 @@ void tdVkDrawBoxCore(TdSpriteBatch* sprite_batch, float x, float y, float w, flo
 			v0 = (float)src->y / th;
 			u1 = (float)(src->x + src->w) / tw;
 			v1 = (float)(src->y + src->h) / th;
-		}
-		else
-		{
-			u0 = 0;
-			u1 = 1;
 		}
 		if (flip & 0x01) { float t = u1; u1 = u0; u0 = t; }
 		if (flip & 0x02) { float t = v1; v1 = v0; v0 = t; }
@@ -637,7 +632,7 @@ void tdVkDrawCircle(TdSpriteBatch* sprite_batch, float x, float y, float r, int3
 		pv->color.g = color.g;
 		pv->color.b = color.b;
 		pv->color.a = color.a;
-		if (batch->tex_id) {
+		if (type) {
 			pv->u = 0.5f + (float)cos(angle) * 0.5f;
 			pv->v = 0.5f + (float)sin(angle) * 0.5f;
 		}
@@ -654,7 +649,7 @@ void tdVkDrawCircle(TdSpriteBatch* sprite_batch, float x, float y, float r, int3
 		pv->color.g = color.g;
 		pv->color.b = color.b;
 		pv->color.a = color.a;
-		if (batch->tex_id >= 0) {
+		if (type) {
 			pv->u = 0.5f + (float)cos(angle) * 0.5f;
 			pv->v = 0.5f + (float)sin(angle) * 0.5f;
 		}
@@ -671,7 +666,7 @@ void tdVkDrawCircle(TdSpriteBatch* sprite_batch, float x, float y, float r, int3
 		pv->color.g = color.g;
 		pv->color.b = color.b;
 		pv->color.a = color.a;
-		if (batch->tex_id >= 0) {
+		if (type) {
 			pv->u = 0.5f + (float)cos(angle) * 0.5f;
 			pv->v = 0.5f + (float)sin(angle) * 0.5f;
 		}
