@@ -14,8 +14,13 @@ void main()
 
 	if (in_type == 0)
 	{
-		// sprite
-		if (in_uv.x >= 0) final_color *= texture(sampler_color, in_uv);
+		// untextured sprite
+  		if (final_color.a == 0) discard; 
+	}
+	else if (in_type == 1)
+	{
+		// textured sprite
+		final_color *= texture(sampler_color, in_uv);
   		if (final_color.a == 0) discard; 
 	}
 	else

@@ -4,6 +4,7 @@
 
 #include "TdBase.h"
 #include "TdDataTypes.h"
+#include "TdRandom.h"
 #include "TdHelpers.h"
 #include "TdThread.h"
 #include "TdVkInstance.h"

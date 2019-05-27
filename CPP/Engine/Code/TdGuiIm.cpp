@@ -35,7 +35,7 @@ void RenderButton(TdImGui* gui, TdImGuiContext context, const TdRect& rect, bool
 	else
 		tdVkDrawBox(gui->sprite_batch, rect.x, rect.y, rect.w, rect.h, back_color);
 
-	tdVkDrawTextCenteredDF(gui->sprite_batch, gui->GuiText(context), rect.x + rect.w * 0.5f + gui->text_offset.x, rect.y + rect.h * 0.5f + gui->text_offset.y, text_color, 1, gui->button_text_scale);
+	tdVkDrawTextCentered(gui->sprite_batch, gui->GuiText(context), rect.x + rect.w * 0.5f + gui->text_offset.x, rect.y + rect.h * 0.5f + gui->text_offset.y, text_color, 1, gui->button_text_scale);
 }
 
 void RenderMenuItem(TdImGui* gui, TdImGuiContext context, const TdRect& rect, const char* text, Color back_color, Color text_color, bool enabled, bool text_centered)
@@ -43,11 +43,11 @@ void RenderMenuItem(TdImGui* gui, TdImGuiContext context, const TdRect& rect, co
 	tdVkDrawBox(gui->sprite_batch, rect.x, rect.y, rect.w, rect.h, back_color);
 
 	if (text_centered)
-		tdVkDrawTextCenteredDF(gui->sprite_batch, text, rect.x + rect.w * 0.5f + gui->text_offset.x, rect.y + rect.h * 0.5f + gui->text_offset.y, text_color, 1, gui->menu_text_scale);
+		tdVkDrawTextCentered(gui->sprite_batch, text, rect.x + rect.w * 0.5f + gui->text_offset.x, rect.y + rect.h * 0.5f + gui->text_offset.y, text_color, 1, gui->menu_text_scale);
 	else
 	{
 		Vector2 size = tdVkSpriteBatchGetTextSize(gui->sprite_batch, text, 0, gui->menu_text_scale);
-		tdVkDrawTextDF(gui->sprite_batch, text, 0, rect.x + gui->text_offset.x + 8, rect.y + gui->text_offset.y + (rect.h - size.y) * 0.5f, text_color, 1, gui->menu_text_scale);
+		tdVkDrawText(gui->sprite_batch, text, 0, rect.x + gui->text_offset.x + 8, rect.y + gui->text_offset.y + (rect.h - size.y) * 0.5f, text_color, 1, gui->menu_text_scale);
 	}
 }
 
@@ -165,7 +165,7 @@ void DoToolTip(TdImGui* gui, TdImGuiContext context)
 			tdVkDrawBoxO(gui->sprite_batch, rect.x, rect.y, rect.w, rect.h, gui->tooltip_back_color, 1, gui->tooltip_border_color);
 			rect.x += 4;
 			rect.y += 4;
-			tdVkDrawTextDF(gui->sprite_batch, text, 0, rect.x, rect.y, gui->tooltip_text_color, 1, gui->tooltip_text_scale);
+			tdVkDrawText(gui->sprite_batch, text, 0, rect.x, rect.y, gui->tooltip_text_color, 1, gui->tooltip_text_scale);
 		}
 	}
 }

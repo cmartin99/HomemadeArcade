@@ -55,7 +55,7 @@ void RenderDebugTimedBlocks(const Gamer* gamer, TdArray<TdTimedBlockCounter>& ti
 			len = sprintf(temp_text, "%s: %s", p->name, sprintf_comma(p->total_cycles, commas1));
 		}
 		tdVkDrawBox(sprite_batch, 0, *y, gamer->viewport.width, debug_text_height - 1, debug_bar_col);
-		tdVkDrawTextDF(sprite_batch, temp_text, len, 2, *y, i % 2 == 0 ? Colors::Gray : Colors::White, debug_text_depth, debug_text_scale);
+		tdVkDrawText(sprite_batch, temp_text, len, 2, *y, i % 2 == 0 ? Colors::Gray : Colors::White, debug_text_depth, debug_text_scale);
 		*y += debug_text_height;
 	}
 }
@@ -82,7 +82,7 @@ void RenderDebug(const Gamer* gamer)
 			);
 
 	tdVkDrawBox(sprite_batch, 0, y, gamer->viewport.width, debug_text_height - 1, debug_bar_col);
-	tdVkDrawTextDF(sprite_batch, temp_text, len, 2, y, Colors::White, debug_text_depth, debug_text_scale);
+	tdVkDrawText(sprite_batch, temp_text, len, 2, y, Colors::White, debug_text_depth, debug_text_scale);
 	y += debug_text_height;
 
 	if (app_state->debug_data.debug_verbosity > 1)

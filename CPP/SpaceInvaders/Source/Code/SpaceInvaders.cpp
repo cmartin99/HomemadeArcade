@@ -50,9 +50,9 @@ void RendererNew(TdVkInstance* vulkan)
 	renderer->vulkan = vulkan;
 
 	renderer->sprite_batch = tdMalloc<TdSpriteBatch>(app_state->perm_arena);
-	tdVkSpriteBatchInit(vulkan, renderer->sprite_batch, 2000000);
+	tdVkSpriteBatchInit(vulkan, renderer->sprite_batch, &app_state->perm_arena, true, 2000000);
 	renderer->gui_sprite_batch = tdMalloc<TdSpriteBatch>(app_state->perm_arena);
-	tdVkSpriteBatchInit(vulkan, renderer->gui_sprite_batch, 100000);
+	tdVkSpriteBatchInit(vulkan, renderer->gui_sprite_batch, &app_state->perm_arena, true, 100000);
 }
 
 void InitApplication(AppMemory& _memory, TdVkInstance* vulkan)

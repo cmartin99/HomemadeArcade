@@ -47,9 +47,6 @@ namespace eng {
 #ifdef _PROFILE_
 #define TIMED_BLOCK(name) TdTimedBlock _timed_block_##name(#name);
 #define TIMED_BLOCK_ONCE(name) TdTimedBlock _timed_block_##name(#name, true);
-extern uint32 draw_calls;
-extern uint32 sprite_draws;
-extern uint32 sprite_batches;
 #else
 #define TIMED_BLOCK(name)
 #define TIMED_BLOCK_ONCE(name)
